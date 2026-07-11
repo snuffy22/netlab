@@ -54,6 +54,9 @@ features:
     svi_interface_name: vether{vlan}
     mixed_trunk: true
     native_routed: true
+  vrf:
+    ospfv2: true
+    ospfv3: true
 libvirt:
   create_template: openbsd.xml.j2
   image: netlab/openbsd

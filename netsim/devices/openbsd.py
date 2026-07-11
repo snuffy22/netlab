@@ -3,7 +3,7 @@
 #
 from box import Box
 
-from ..utils import log
+from ..utils import log, routing
 from . import _Quirks, report_quirk
 from ._common import check_indirect_static_routes
 
@@ -29,13 +29,14 @@ OpenBSD OSPFv3 implementation is not an ABR
 def check_ospf6_quirks(node: Box) -> None:
   if 'ospf' not in node.get('module',[]):                   # Is the device running OSPF?
     return
-  if 'ipv6' not in node.ospf.get('af',{}):                  # Does it run OSPF with IPv6?
-    return
-  area_set = { intf.ospf.area                               # Collect OSPF areas into a set
-                 for intf in node.interfaces +              # ... going through all interfaces
-                   [ node.get('loopback',{}) ]              # ... plus the loopback
-                   if 'ospf' in intf and 'ipv6' in intf }   # ... when the interface uses OSPF and has an IPv6 address
-  if len(area_set) > 1:                                     # Do we have more than one area per device?
+
+  for o_data,_,vrf in routing.rp_data(node,'ospf'):
+    if 'ipv6' not in o_data.get('af',{}):
+      continue
+
+    if not o_data.get('_abr',False):
+      continue
+
     report_quirk(
       f'node {node.name} cannot be an OSPFv3 ABR',
       more_hints=['OpenBSD OSPFv3 daemon does not implement the ABR functionality'],
