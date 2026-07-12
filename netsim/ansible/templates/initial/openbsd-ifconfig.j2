@@ -1,4 +1,4 @@
-{% macro ifconfig(intf,alias='') %}
+{% macro ifconfig(intf,alias='',vrf='') %}
 {%   if not alias %}
 ifconfig {{ intf.ifname }} -inet
 ifconfig {{ intf.ifname }} -inet6

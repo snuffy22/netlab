@@ -5,7 +5,7 @@
 {% set _vrfs = vrfs|default({}) %}
 # Reconfigure interfaces and loopbacks to vrfs
 {% for ifdata in interfaces if ifdata.vrf is defined %}
-{{ ifconfig(ifdata,role,vrf=_vrfs[ifdata.vrf].vrfidx) }}
+{{ ifconfig(ifdata,vrf=_vrfs[ifdata.vrf].vrfidx) }}
 {% endfor %}
 
 #
