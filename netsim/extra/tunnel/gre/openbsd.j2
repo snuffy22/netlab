@@ -6,13 +6,10 @@ sysctl net.inet.gre.allow=1
 
 {% for intf in netlab_interfaces if intf.tunnel.mode|default('') in ['gre'] %}
 {%   set af = intf.tunnel.af|default('ipv4') %}
-#ifconfig {{ intf.ifname }} create
 {%   if af != "ipv6" %}
 ifconfig {{ intf.ifname }} tunnel {{ intf.tunnel._source[af] }} {{ intf.tunnel._destination[af] }}
-ifconfig {{ intf.ifname }} {{ intf[af]|ansible.utils.ipaddr('address') }} {{ intf.neighbors[0][af]|ansible.utils.ipaddr('address') }}
 {%   else %}
 ifconfig {{ intf.ifname }} tunnel {{ intf.tunnel._source[af] }} {{ intf.tunnel._destination[af] }}
-ifconfig {{ intf.ifname }} inet6 {{ intf.neighbors[0][af]|ansible.utils.ipaddr('address') }}
 {%   endif %}
 ifconfig {{ intf.ifname }} tunnelttl 255 up
 {% endfor %}
