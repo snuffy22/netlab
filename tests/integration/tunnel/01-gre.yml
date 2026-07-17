@@ -1,8 +1,14 @@
 ---
 message: |
+<<<<<<< HEAD
   Test the GRE tunnels. The tested devices has GRE tunnels over IPv4 and IPv6
   and runs OSPFv2 and OSPFv3 over them. The probes should receive OSPF routes
   advertised from the DUT and be able to ping its loopback.
+=======
+  Test the GRE tunnels. The tested devices has a GRE tunnel over IPv4 and runs
+  OSPFv2 and OSPFv3 over it. The probe should receive an OSPF route advertised
+  from the DUT and be able to ping its loopback.
+>>>>>>> c5568b08e1 (Dual-stack GRE tunnel integration test)
 
 defaults.sources.extra: [ ../wait_times.yml, ../warnings.yml ]
 defaults.paths.prepend.plugin: [ "topology:../plugin" ]
