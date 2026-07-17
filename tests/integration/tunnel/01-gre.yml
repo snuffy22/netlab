@@ -5,6 +5,8 @@ message: |
   advertised from the DUT and be able to ping its loopback.
 
 defaults.sources.extra: [ ../wait_times.yml, ../warnings.yml ]
+defaults.paths.prepend.plugin: [ "topology:../plugin" ]
+defaults.modules.warnings.no_nodes: False       # Do not complain about nobody using OSPF
 
 addressing:
   loopback:
@@ -18,7 +20,7 @@ addressing:
     ipv4: 172.23.0.0/16
     ipv6: 2001:db8:1::/48
 
-plugin: [ tunnel.gre ]
+plugin: [ tunnel.gre, adjust_test ]
 
 groups:
   probes:
@@ -27,6 +29,9 @@ groups:
     members: [ core, r2, r3 ]
 
 module: [ ospf, routing ]
+
+ospf.timers.hello: 1
+ospf.timers.dead: 3
 
 nodes:
   dut:
@@ -58,20 +63,38 @@ links:
   pool: core6
   members: [ dut-core, r3-core ]
 - group: gre
-  type: tunnel
   tunnel.mode: gre
   tunnel.source.link.role: core
   mtu: 1400
   pool: tunnel
   members: [ dut-r2 ]
 - group: gre6
-  type: tunnel
   tunnel.mode: gre
   tunnel.source.link.role: core6
   tunnel.af: ipv6
   mtu: 1400
   pool: tunnel
   members: [ dut-r3 ]
+
+_adjust:
+- nodes: [ dut ]              # Check for fast OSPF timers support
+  features: [ ospf.timers ]
+  remove:
+  - nodes:ospf.timers
+- nodes: [ dut ]              # Remove GRE tunnel over IPv6 if DUT does not support it
+  features:
+  - key: tunnel.gre
+    value: ipv6
+  warning: >-
+    {device} does not support GRE tunnels over IPv6
+  remove:                     # We have to remove the GRE-over-IPv6 tunnels and all related validation tests
+  - links[5]
+  - validate.g6_adj_v4
+  - validate.g6_adj_v6
+  - validate.g6_pfx_v4
+  - validate.g6_pfx_v6
+  - validate.g6_ping_v4
+  - validate.g6_ping_v6
 
 validate:
   g4_adj_v4:
