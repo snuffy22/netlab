@@ -58,7 +58,7 @@ features:
   vxlan:
     vtep6: True
   tunnel:
-    gre: True
+    gre: [ ipv4 ]
 libvirt:
   create_template: openbsd.xml.j2
   image: netlab/openbsd
