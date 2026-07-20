@@ -2,7 +2,6 @@ import base64
 import binascii
 
 from box import Box
-
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 from netsim.augment import devices
@@ -68,9 +67,9 @@ def public_key_from_private(private_key: str) -> str:
     return _encode_wireguard_key(key.public_key().public_bytes_raw())
 
   except ValueError as ex:
-     log.fatal(
-       f'Cannot derive WireGuard public key: {ex}',
-       'or configure tunnel.private_key and tunnel.public_key',
+    log.fatal(
+      f'Cannot derive WireGuard public key: {ex}',
+      'or configure tunnel.private_key and tunnel.public_key',
       module='tunnel.wireguard')
 
 def generate_keypair() -> tuple[str, str]:
