@@ -1,6 +1,9 @@
-import subprocess
+import base64
+import binascii
 
 from box import Box
+
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 from netsim.augment import devices
 from netsim.augment import links as _links
@@ -12,42 +15,83 @@ from .. import _p2p
 
 _config_name = 'tunnel.wireguard'
 
+
+_WG_KEY_SIZE = 32
+
+
+def _clamp_wireguard_private_key(key_data: bytes) -> bytes:
+  '''
+  Clamp an X25519 private key using the representation produced by wg genkey.
+  '''
+  if len(key_data) != _WG_KEY_SIZE:
+    raise ValueError(
+      f'WireGuard private key must contain {_WG_KEY_SIZE} bytes')
+
+  clamped_key = bytearray(key_data)
+  clamped_key[0] &= 248
+  clamped_key[31] &= 127
+  clamped_key[31] |= 64
+
+  return bytes(clamped_key)
+
+def _encode_wireguard_key(key_data: bytes) -> str:
+  '''
+  Encode a raw WireGuard key using the Base64 representation expected by
+  WireGuard.
+  '''
+  return base64.b64encode(key_data).decode('ascii')
+
+def _decode_wireguard_private_key(private_key: str) -> bytes:
+  '''
+  Decode and validate a Base64-encoded WireGuard private key.
+  '''
+  try:
+    key_data = base64.b64decode(private_key,validate=True)
+  except (binascii.Error,ValueError) as ex:
+    raise ValueError('private key is not valid Base64') from ex
+
+  if len(key_data) != _WG_KEY_SIZE:
+    raise ValueError(
+      f'private key must decode to {_WG_KEY_SIZE} bytes, '
+      f'not {len(key_data)} bytes')
+
+  return key_data
+
 def public_key_from_private(private_key: str) -> str:
   '''
   Derive a WireGuard public key from a private key using wireguard-tools
   '''
   try:
-    return subprocess.check_output(
-      ['wg', 'pubkey'],
-      input=f'{private_key}\n',
-      text=True,
-      stderr=subprocess.DEVNULL).strip()
-  except (FileNotFoundError, subprocess.CalledProcessError, OSError):
-    log.fatal(
-      'Cannot derive WireGuard public key (install wireguard-tools, '
-      'or configure tunnel.private_key and tunnel.public_key)',
+    key_data = _decode_wireguard_private_key(private_key)
+    key = X25519PrivateKey.from_private_bytes(key_data)
+
+    return _encode_wireguard_key(key.public_key().public_bytes_raw())
+
+  except ValueError as ex:
+     log.fatal(
+       f'Cannot derive WireGuard public key: {ex}',
+       'or configure tunnel.private_key and tunnel.public_key',
       module='tunnel.wireguard')
 
 def generate_keypair() -> tuple[str, str]:
   '''
-  Generate a WireGuard private/public key pair using wireguard-tools
+  Generate a WireGuard-compatible private/public X25519 key pair.
   '''
-  try:
-    private_key = subprocess.check_output(
-      ['wg', 'genkey'],
-      text=True,
-      stderr=subprocess.DEVNULL).strip()
-    public_key = subprocess.check_output(
-      ['wg', 'pubkey'],
-      input=f'{private_key}\n',
-      text=True,
-      stderr=subprocess.DEVNULL).strip()
-    return private_key, public_key
-  except (FileNotFoundError, subprocess.CalledProcessError, OSError):
-    log.fatal(
-      'Cannot generate WireGuard keys (install wireguard-tools, '
-      'or configure tunnel.private_key and tunnel.public_key)',
-      module='tunnel.wireguard')
+  generated_key = X25519PrivateKey.generate()
+
+  # cryptography preserves the generated raw 32-byte value. WireGuard's
+  # `wg genkey` prints the clamped representation, so clamp the serialized
+  # value before encoding it.
+  private_key_data = _clamp_wireguard_private_key(generated_key.private_bytes_raw())
+
+  # Re-create the key from the exact bytes that will be returned so the
+  # private/public pair is explicitly derived from the same representation.
+  private_key = X25519PrivateKey.from_private_bytes(private_key_data)
+
+  return (
+    _encode_wireguard_key(private_key_data),
+    _encode_wireguard_key(private_key.public_key().public_bytes_raw())
+    )
 
 def ensure_tunnel_keys(
       node: str,
