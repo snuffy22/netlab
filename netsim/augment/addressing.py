@@ -1,4 +1,4 @@
-'''
+"""
 Set up network addressing
 =========================
 
@@ -46,7 +46,7 @@ parameters when the corresponding addressing parameteres are missing:
 * _loopback_ default is used to create _loopback_ pool
 * _lan_ and _lan_subnet_ defaults are used to create _LAN_ pool
 * _p2p_ and _p2p_subnet_ defaults are used to create _p2p_ pool
-'''
+"""
 
 import ipaddress
 import sys
@@ -63,9 +63,15 @@ from ..utils import log, strings
 
 
 def normalize_prefix(pfx: typing.Union[str,Box]) -> Box:
-
-  # Normalize IP addr strings, e.g. 2001:001::/48 becomes 2001:1::/48
+  """
+  Normalize an address pool definition into the internal Box representation.
+  e.g. 2001:001::/48 becomes 2001:1::/48
+  """
   def normalize_ip(ip:typing.Union[str,bool]) -> typing.Union[str,bool]:
+    """
+    Normalize IP.
+    """
+
     try:
       return str(ipaddress.ip_network(ip)) if isinstance(ip,str) else ip
     except Exception as ex:
@@ -89,6 +95,9 @@ def normalize_prefix(pfx: typing.Union[str,Box]) -> Box:
   return pfx
 
 def rebuild_prefix(pfx: typing.Union[dict,Box]) -> Box:
+  """
+  Build a compact serializable prefix description.
+  """
   out_pfx = get_empty_box()
   for af in ('ipv4','ipv6','allocation','_name'):
     if af in pfx:
@@ -96,6 +105,9 @@ def rebuild_prefix(pfx: typing.Union[dict,Box]) -> Box:
   return out_pfx
 
 def setup_pools(addr_pools: typing.Optional[Box] = None, defaults: typing.Optional[Box] = None) -> Box:
+  """
+  Build the effective addressing pool database from topology and defaults data.
+  """
   addrs = addr_pools or get_empty_box()
   defaults = defaults or get_empty_box()
   legacy = get_empty_box()
@@ -118,6 +130,9 @@ def setup_pools(addr_pools: typing.Optional[Box] = None, defaults: typing.Option
   return addrs
 
 def validate_pools(addrs: Box, topology: Box) -> None:
+  """
+  Validate normalized addressing pool definitions.
+  """
   for p_name,p_value in addrs.items():
     validate_attributes(
       data=p_value,                                   # Validate node data
@@ -212,6 +227,9 @@ def validate_pools(addrs: Box, topology: Box) -> None:
       module='addressing')
 
 def create_pool_generators(addrs: Box, no_copy_list: list) -> Box:
+  """
+  Converts validated address-pool definitions into per-pool subnet generators for IPv4 and IPv6
+  """
   if not addrs:       # pragma: no cover (pretty hard not to have address pools)
     addrs = get_empty_box()
   gen = get_empty_box()
@@ -245,6 +263,9 @@ def get_nth_subnet(n: int, subnet: types.GeneratorType, cache_list: list) -> ipa
   return cache_list[n-1]
 
 def get_pool_prefix(pools: Box, p: str, n: typing.Optional[int] = None) -> Box:
+  """
+  Acquire a prefix from the list of pools
+  """
   prefixes = get_empty_box()
   for af in list(pools[p]):
     if 'cache' in af:                                                 # Skipping over caches
@@ -279,6 +300,10 @@ def get_pool_prefix(pools: Box, p: str, n: typing.Optional[int] = None) -> Box:
   return prefixes
 
 def get(pools: Box, pool_list: typing.Optional[typing.List[str]] = None, n: typing.Optional[int] = None) -> Box:
+  """
+  Retrieves an address prefix from the first available pool in a requested pool list, will default
+  to the lan pool when no list is supplied.
+  """
   if not pool_list:
     pool_list = ['lan']                   # pragma: no cover
   p = get_pool(pools,pool_list)
@@ -288,6 +313,9 @@ def get(pools: Box, pool_list: typing.Optional[typing.List[str]] = None, n: typi
     return get_empty_box()                # pragma: no cover -- can't figure out how to get here
 
 def setup(topology: Box) -> None:
+  """
+  Initialize topology addressing, create pool generators, stores pool/addressing structures back into the topology
+  """
   defaults = topology.defaults
   prior_errors = log.get_error_count()
   null_to_string(topology.addressing)
@@ -311,10 +339,10 @@ def setup(topology: Box) -> None:
   if 'prefix' in topology:
     setup_prefixes(topology)
 
-'''
-Get an addressing prefix from the name of a named prefix
-'''
 def evaluate_named_prefix(topology: Box, pname: str) -> Box:
+  """
+  Get an addressing prefix from the name of a named prefix
+  """
   if pname not in topology.prefix:                    # pragma: no cover
     return get_empty_box()                            # Should be tested by the caller
   topology.prefix[pname]._name = pname                # Insert a prefix name to make it visible in links/VLANs
@@ -339,15 +367,20 @@ def evaluate_named_prefix(topology: Box, pname: str) -> Box:
   topology.prefix[pname].pop('pool')
   return topology.prefix[pname]
 
-'''
-Assign static prefixes to all pool-based named prefixes
-'''
 def setup_prefixes(topology: Box) -> None:
+  """
+  Assign static prefixes to all pool-based named prefixes
+  """
   for p_name,p_value in topology.prefix.items():
     if 'pool' in p_value:
       evaluate_named_prefix(topology,p_name)
 
 def parse_prefix(prefix: typing.Union[str,Box],path: str = 'links') -> Box:
+  """
+  Normalizes a prefix definition into a Box object containing parsed IP network objects.
+  It accepts either a named/string prefix or a structured Box, resolves named prefixes from the topology,
+  supports IPv4/IPv6 parsing, and handles the legacy ip field by converting it to ipv4.
+  """
   if log.debug_active('addr'):                     # pragma: no cover (debugging printout)
     print(f"parse prefix: {prefix} type={type(prefix)}")
 

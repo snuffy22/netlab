@@ -1,6 +1,8 @@
-#
-# Utility routines to augment configuration files
-#
+"""
+Configuration defaults, attribute propagation, and search-path augmentation helpers.
+
+Utility routines to augment configuration files
+"""
 
 import textwrap
 import typing
@@ -10,20 +12,19 @@ from box import Box, BoxList
 from ..utils import files as _files
 from ..utils import log
 
-"""
-Augment module attributes
-
-* Copy data types from global to nodes (unless no_propagate is set)
-* Copy data types from links to interfaces
-* Copy data types from node to interfaces if an attribute is in the node_copy list
-"""
 
 def copy_datatypes(
       parent: typing.Optional[Box],                                   # Parent attributes (example: global)
       child: typing.Optional[Box],                                    # Child attributes (example: node)
       copy_list: list = [],                                           # Only copy these attributes (example: node_copy)
       skip_list: list = []) -> None:                                  # Skip these attributes (example: module.no_propagate)
+  """
+  Propagate missing datatype definitions between attribute namespaces.
 
+  * Copy data types from global to nodes (unless no_propagate is set)
+  * Copy data types from links to interfaces
+  * Copy data types from node to interfaces if an attribute is in the node_copy list
+  """
   if not isinstance(child,Box) or not isinstance(parent,Box):         # Datatype propagation works only for box-to-box case
     return
 
@@ -42,7 +43,9 @@ def adjust_attributes(
       global_no_propagate: list = [],
       link_no_propagate: list = [],
       node_copy: list = []) -> None:
-
+  """
+  Adjust related module attribute namespaces.
+  """
   copy_datatypes(                                                     # Copy global datatypes to node datatyps
     parent=attr.get('global',None),
     child=attr.get('node',None),
@@ -57,15 +60,15 @@ def adjust_attributes(
       child=attr.get('interface',None),
       copy_list=node_copy)
 
-'''
-copy_merge_attributes: Copy or merge attribute definitions between various attribute namespaces
-
-An attribute definition is copied/merged if:
-
-* The attribute contains 'copy' keyword
-* The attribute exists in the target namespace
-'''
 def copy_merge_attributes(attr: Box) -> None:
+  """
+  Copy or merge attribute definitions between various attribute namespaces
+
+  An attribute definition is copied/merged if:
+
+  * The attribute contains 'copy' keyword
+  * The attribute exists in the target namespace
+  """
   for ns in attr.keys():                                              # Iterate over attribute namespaces
     if not isinstance(attr[ns],Box):                                  # This is clearly not an attribute namespace
       continue
@@ -91,16 +94,16 @@ def copy_merge_attributes(attr: Box) -> None:
         attr[ns][attr_name] = attr[source_ns][attr_name] + attr[ns][attr_name]
         attr[ns][attr_name].pop('merge',None)                         # ... and remove the merge request
 
-"""
-copy_merge_device_features -- merge features across similar devices
-
-The processing of merge requests is a bit awkward. For example, 'merge: ios' within csr.features.bgp means
-'merge from ios.features.bgp'
-"""
 def copy_merge_device_features(
       data: Box,
       devices: typing.Optional[Box] = None,
       path: str = "") -> None:
+  """
+  Merge features across similar devices
+
+  The processing of merge requests is a bit awkward. For example, 'merge: ios' within csr.features.bgp means
+  'merge from ios.features.bgp'
+  """
   for kw in data.keys():
     if not isinstance(data[kw],Box):
       continue
@@ -120,10 +123,10 @@ def copy_merge_device_features(
 
       data[kw] = (devices[src_path] + data[kw]) if 'merge' in data[kw] else devices[src_path]
 
-'''
-process_copy_requests: process 'copy attribute' requests from a late defaults data structure
-'''
 def process_copy_requests(defaults: Box) -> None:
+  """
+  Process 'copy attribute' requests from a late defaults data structure
+  """
   for def_name,def_data in defaults.items():                          # Iterate over default values
     if not isinstance(def_data,Box):                                  # Value not a dictionary => nothing to do
       continue
@@ -134,6 +137,9 @@ def process_copy_requests(defaults: Box) -> None:
     copy_merge_device_features(defaults.devices)                      # Merge features across similar devices
 
 def attributes(topology: Box) -> None:
+  """
+  Augment global and module attribute definitions.
+  """
   defaults=topology.defaults
   copy_merge_attributes(defaults.attributes)
   for modname,moddata in defaults.items():                            # Iterate over top-level defaults
@@ -146,17 +152,17 @@ def attributes(topology: Box) -> None:
       link_no_propagate=moddata.attributes.get('link_no_propagate',[]),
       node_copy=moddata.attributes.get('node_copy',[]))
 
-'''
-paths: adjust system paths, replacing package: and topology: prefixes
-'''
 def paths(topology: Box) -> None:
+  """
+  Adjust system paths, replacing package: and topology: prefixes
+  """
   adjust_paths(topology.defaults.paths)
   make_paths_absolute(topology.defaults.paths,limit=['plugin'])
 
-'''
-adjust_paths: prepend or append path elements to default paths
-'''
 def adjust_paths(paths: Box) -> None:
+  """
+  Prepend or append path elements to default paths
+  """
   if 'prepend' in paths and isinstance(paths.prepend,Box):
     adjust_path_list(paths.prepend,paths,False)
     paths.pop('prepend',None)
@@ -166,6 +172,9 @@ def adjust_paths(paths: Box) -> None:
     paths.pop('append',None)
 
 def adjust_path_list(adjust: Box, paths: Box, append: bool) -> None:
+  """
+  Recursively apply path-list adjustments.
+  """
   for k,v in adjust.items():                                          # Iterate over prepend/append elements
     if isinstance(v,BoxList):                                         # ... act only on lists
       if k not in paths:                                              # Unknown path specification?
@@ -176,12 +185,12 @@ def adjust_path_list(adjust: Box, paths: Box, append: bool) -> None:
     elif isinstance(v,Box) and isinstance(paths[k],Box):              # If both trees have further branches recurse
       adjust_path_list(adjust[k],paths[k],append)
 
-'''
-Recursive function that traverses the 'paths' tree and converts every list into
-a list of absolute paths... unless the key starts with 'files' or 'tasks' in
-which case the list is a list of potential file names and should not be changed.
-'''
 def make_paths_absolute(p_top: Box, parents: str = 'defaults.paths', limit: list = []) -> None:
+  """
+  Recursive function that traverses the 'paths' tree and converts every list into
+  a list of absolute paths... unless the key starts with 'files' or 'tasks' in
+  which case the list is a list of potential file names and should not be changed.
+  """
   for k in list(p_top.keys()):
     if limit and k not in limit:
       continue

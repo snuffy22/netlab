@@ -1,6 +1,6 @@
-'''
+"""
 plugin - implement custom topology transformation plugins
-'''
+"""
 
 import importlib
 import importlib.util
@@ -18,8 +18,8 @@ from . import config
 
 
 def merge_plugin_defaults(defaults: typing.Optional[Box], topology: Box) -> None:
-  '''
-  merge_plugin_defaults: Merge plugin defaults with topology defaults
+  """
+  Merge plugin defaults with topology defaults
 
   We cannot simply overwrite the topology defaults with plugin defaults as the
   defaults might have been changed by the user, so we're using a dirty trick:
@@ -28,10 +28,10 @@ def merge_plugin_defaults(defaults: typing.Optional[Box], topology: Box) -> None
     defaults take precedence)
   * Whatever is really important should be in the 'important' dictionary and will
     take precedence over anything else
-  '''
+  """
   if not defaults:
     return
-  
+
   config.process_copy_requests(defaults)
   important_stuff = None
   if 'important' in defaults:
@@ -43,19 +43,19 @@ def merge_plugin_defaults(defaults: typing.Optional[Box], topology: Box) -> None
     topology.defaults = topology.defaults + important_stuff
 
 def load_plugin_defaults(dir_path: str, topology: Box) -> None:
-  '''
+  """
   Given the path to plugin directory, read the plugin defaults
-  '''
+  """
   defaults_file = dir_path + '/defaults.yml'
   if os.path.exists(defaults_file):
     merge_plugin_defaults(_read.read_yaml(defaults_file),topology)
 
 def handle_plugin_redirects(p_module: object, p_name: str, topology: Box) -> typing.Optional[object]:
-  '''
+  """
   Check whether a plugin redirects to another plugin. If it does,
   return the new plugin (and check it exists), otherwise return
   None (for no redirection)
-  '''
+  """
   redirect = getattr(p_module,'_redirect',None)
   if not isinstance(redirect,str):
     return None
@@ -69,12 +69,11 @@ def handle_plugin_redirects(p_module: object, p_name: str, topology: Box) -> typ
   return load_plugin(redirect,topology)
 
 def load_plugin_from_path(path: str, plugin: str, topology: Box) -> typing.Optional[object]:
-  '''
-  Try to load plugin from the specified path. It could be either a
-  .py file, plugin.py within the 'plugin' subdirectory, or __init__.py
-  within the same subdirectory. Subdirectory-based plugins can have
-  system defaults which are also loaded.
-  '''
+  """
+  Try to load plugin from the specified path. It could be either a .py file, plugin.py within the
+  'plugin' subdirectory, or __init__.py within the same subdirectory. Subdirectory-based plugins 
+  can have system defaults which are also loaded.
+  """
   module_path = path+'/'+plugin
   if not os.path.exists(module_path):
     if os.path.exists(module_path+'.py'):
@@ -137,13 +136,13 @@ def load_plugin_from_path(path: str, plugin: str, topology: Box) -> typing.Optio
   return pymodule
 
 def load_plugin_module(pname: str, topology: Box) -> typing.Optional[object]:
-  '''
+  """
   Try loading a netsim.extra module as a plugin.
-  
+
   Report loading errors (apart from "no module" which means the user used an
   incorrect plugin name) and handle the usual plugin processing (redirects,
   config_name, defaults)
-  '''
+  """
   try:
     pymodule = importlib.import_module(f'netsim.extra.{pname}')
   except ModuleNotFoundError:
@@ -171,10 +170,10 @@ def load_plugin_module(pname: str, topology: Box) -> typing.Optional[object]:
   return pymodule
 
 def load_plugin(pname: str,topology: Box) -> typing.Optional[object]:
-  '''
+  """
   Load plugin: try to load the plugin from any of the search path directories.
   Failing that, try to load a netsim.extra module
-  '''
+  """
   for path in topology.defaults.paths.plugin:
     plugin = load_plugin_from_path(path,pname,topology)     # Try to load plugin from the current search path directory
     if plugin:                                              # Got it, get out of the loop
@@ -182,17 +181,17 @@ def load_plugin(pname: str,topology: Box) -> typing.Optional[object]:
 
   return load_plugin_module(pname,topology)
 
-'''
-Sort plugins based on their _requires and _execute_after attributes
-
-Input:
-* List of plugins in topology.plugin
-* Loaded plugins (in the same order) in topology.Plugin
-
-The sorting function has to build a dictionary of plugin modules, sort the plugin names,
-and rebuild the list of loaded plugins.
-'''
 def sort_plugins(topology: Box) -> None:
+  """
+  Sort plugins based on their _requires and _execute_after attributes
+
+  Input:
+  * List of plugins in topology.plugin
+  * Loaded plugins (in the same order) in topology.Plugin
+
+  The sorting function has to build a dictionary of plugin modules, sort the plugin names,
+  and rebuild the list of loaded plugins.
+  """
   if not topology.get('plugin',[]):                           # No plugins, no sorting ;)
     return
 
@@ -206,15 +205,15 @@ def sort_plugins(topology: Box) -> None:
                       lambda p: getattr(pmap[p],'_requires',[]) + getattr(pmap[p],'_execute_after',[]))
   topology.Plugin = [ pmap[p] for p in topology.plugin ]      # And rebuild the list of plugin modules
 
-'''
-find_preceding_config: Utility function for custom config dependency sort
-
-The _sort.dependency routine needs a list of 'things' that have to be before the current 'thing' in the
-sorted output. For custom configs, that means the list of all extra configs that appear 'before' the
-current 'thing' in at least one of the nodes
-'''
 
 def find_preceding_configs(c: str, topology: Box) -> list:
+  """
+  Utility function for custom config dependency sort
+
+  The _sort.dependency routine needs a list of 'things' that have to be before the current 'thing' in the
+  sorted output. For custom configs, that means the list of all extra configs that appear 'before' the
+  current 'thing' in at least one of the nodes
+  """
   before_set: typing.Set[str] = set()
 
   for ndata in topology.nodes.values():                       # Iterate over all nodes (yeah, I know, we're in O(n^2) land at least)
@@ -228,14 +227,11 @@ def find_preceding_configs(c: str, topology: Box) -> list:
 
   return list(before_set)                                     # After iterating through nodes, return the list of what we collected
 
-'''
-sort_extra_config: Sort topology-wide custom configs
-
-Input:  'custom' config lists on nodes
-Output: topology-wide list of custom configurations sorted in 'at least one node has them in this order' order
-'''
-
 def sort_extra_config(topology: Box) -> list:
+  """
+  Sort topology-wide custom configs.
+  Returns topology-wide list of custom configurations sorted in 'at least one node has them in this order'
+  """
   extra_set: typing.Set[str] = set()
   for ndata in topology.nodes.values():                       # Iterate over all nodes
     if not 'config' in ndata:                                 # Skip nodes without custom configs
@@ -250,20 +246,19 @@ def sort_extra_config(topology: Box) -> list:
             extra_list,
             lambda p: find_preceding_configs(p,topology))
 
-'''
-Initialize plugin subsystem:
-
-* Merge default- and topology plugins
-* Load all requested plugins (also checking the presence of their dependencies)
-* Sort plugins based on their _execute_after dependencies
-'''
 def init(topology: Box) -> None:
-  #
-  # Initial sanity checks:
-  # 
-  # * defaults.plugin must be a list
-  # * topology.plugin (when present or when we have default plugins) must be a list
-  #
+  """
+  Initialize plugin subsystem:
+
+  * Merge default- and topology plugins
+  * Load all requested plugins (also checking the presence of their dependencies)
+  * Sort plugins based on their _execute_after dependencies
+
+  Initial sanity checks:
+
+  * defaults.plugin must be a list
+  * topology.plugin (when present or when we have default plugins) must be a list
+  """
   data.types.must_be_list(parent=topology,key='defaults.plugin',path='',create_empty=True)
   if topology.defaults.plugin or 'plugin' in topology:
     data.types.must_be_list(parent=topology,key='plugin',path='',create_empty=True)
@@ -302,15 +297,12 @@ def init(topology: Box) -> None:
   if log.debug_active('plugin'):
     print(f'plug INIT: {topology.Plugin}')
 
-'''
-plugin_requires_check: given a plugin, check whether it has the _requires
-attribute, whether that attribute is a list, and whether all plugins in that list
-are included in the topology
-
-check_plugin_dependencies: perform plugin_requires_check for all loaded plugins
-'''
 
 def plugin_requires_check(plugin: object, topology: Box) -> None:
+  """
+  Given a plugin, check whether it has the _requires attribute, whether that attribute is a list, and whether all 
+  plugins in that list are included in the topology.
+  """
   rq = getattr(plugin,'_requires',None)
   if rq is None:                                              # No dependencies, no worries
     return
@@ -329,27 +321,30 @@ def plugin_requires_check(plugin: object, topology: Box) -> None:
         'plugin')
 
 def check_plugin_dependencies(topology: Box) -> None:
+  """
+  Perform plugin_requires_check for all loaded plugins
+  """
   for plugin in topology.get('Plugin',[]):
     plugin_requires_check(plugin,topology)
 
-'''
-Execute the specified hook in a plugin
-'''
 def execute_plugin_hook(action: str, plugin: object, topology: Box) -> None:
+  """
+  Execute the specified hook in a plugin
+  """
   if hasattr(plugin,action):                                # Does the plugin have the required action?
     func = getattr(plugin,action)                           # ... yes, fetch the function to call
     if log.debug_active('plugin'):                          # ... do some logging to help the poor debugging souls
       print(f'plug {action}: {plugin}')
     func(topology)                                          # ... and execute the plugin function
 
-'''
-Execute a plugin action:
-
-* Iterate over all plugins
-* Try to get the 'action' attribute from the plugin
-* If successful, execute it.
-'''
 def execute(action: str, topology: Box) -> None:
+  """
+  Execute a plugin action:
+
+  * Iterate over all plugins
+  * Try to get the 'action' attribute from the plugin
+  * If successful, execute it.
+  """
   if not 'Plugin' in topology:                                # No plugins, no worries
     return
 

@@ -10,24 +10,24 @@ from box import Box
 from .. import data
 from ..utils import log, strings
 
-"""
-Get node provider -- return node-specific provider or the default provider
-"""
+
 def get_provider(node: Box, defaults: Box) -> str:
+  """
+  Return node-specific provider or the default provider
+  """
   return node.get('provider',defaults.provider)
 
-"""
-Get generic device attribute:
-
-* Use node.device to find device used by the current node
-* Use defaults.provider (future: node data) to find the provider
-* Fetch required data using the following inheritance rules:
-
-  * If the provider data is not a dictionary, return that (no merge)
-  * If the provider data is a dictionary, but the device data is not, return provider data (override)
-  * Return a merge of both dictionaries
-"""
 def get_device_attribute(node: Box, attr: str, defaults: Box) -> typing.Optional[typing.Any]:
+  """
+  Get generic device attribute:
+
+  * Use node.device to find device used by the current node
+  * Use defaults.provider (future: node data) to find the provider
+  * Fetch required data using the following inheritance rules:
+    * If the provider data is not a dictionary, return that (no merge)
+    * If the provider data is a dictionary, but the device data is not, return provider data (override)
+    * Return a merge of both dictionaries
+  """
   devtype  = node.device
   provider = get_provider(node,defaults)
 
@@ -53,10 +53,10 @@ def get_device_attribute(node: Box, attr: str, defaults: Box) -> typing.Optional
 
   return value                           # Return whatever the device value is
 
-"""
-Get device feature flags -- uses get_device_attribute but returns a Box to keep mypy happy
-"""
 def get_device_features(node: Box, defaults: Box) -> Box:
+  """
+  Uses get_device_attribute but returns a Box to keep mypy happy
+  """
   n_features = node.get('_features',{})
   if not isinstance(n_features,Box):
     n_features = data.get_empty_box()
@@ -71,10 +71,10 @@ def get_device_features(node: Box, defaults: Box) -> Box:
 
   return features + n_features
 
-"""
-Get all device data for current provider
-"""
 def get_provider_data(node: Box, defaults: Box) -> Box:
+  """
+  Get all device data for current provider
+  """
   devtype  = node.device
   provider = get_provider(node,defaults)
 
@@ -83,10 +83,10 @@ def get_provider_data(node: Box, defaults: Box) -> Box:
 
   return defaults.devices[devtype].get(provider,{})
 
-"""
-Get consolidated device data
-"""
 def get_consolidated_device_data(node: Box, defaults: Box) -> Box:
+  """
+  Get consolidated device data
+  """
   devtype  = node.device
   provider = get_provider(node,defaults)
 
@@ -99,36 +99,36 @@ def get_consolidated_device_data(node: Box, defaults: Box) -> Box:
 
   return data
 
-"""
-Get group variable from node or device data
-"""
 def get_node_group_var(node: Box, g_var: str, defaults: Box) -> typing.Any:
+  """
+  Get group variable from node or device data
+  """
   if g_var in node:                               # Is group variable set in node?
     return node.get(g_var)
   else:                                           # Not set, get default device value for the node provider
     dev_data = get_consolidated_device_data(node,defaults)
     return dev_data.get(f'group_vars.{g_var}',None)
 
-"""
-Get device loopback name (built-in loopback if ifindex == 0 else an additional loopback)
-"""
 def get_loopback_name(node: Box, topology: Box, ifindex: int = 0) -> typing.Optional[str]:
+  """
+  Get device loopback name (built-in loopback if ifindex == 0 else an additional loopback)
+  """
   lbname = get_device_attribute(node,'loopback_interface_name',topology.defaults)
   if not lbname:
     return None
 
   return strings.eval_format(lbname,{ 'ifindex': ifindex })
 
-"""
-Check whether the 'data' used in 'node' at 'path' contains valid optional device features
-
-The checking algorithm is specified with the check_mode parameter:
-
-* WHITELIST requires that every element used in 'data' is a feature
-* BLACKLIST reports errors for elements in features. The value of those features could
-  be 'False' (not supported) or a string (error message)
-"""
 class FC_MODE(Enum):
+  """
+  Check whether the 'data' used in 'node' at 'path' contains valid optional device features
+
+  The checking algorithm is specified with the check_mode parameter:
+
+  * WHITELIST requires that every element used in 'data' is a feature
+  * BLACKLIST reports errors for elements in features. The value of those features could
+    be 'False' (not supported) or a string (error message)
+  """
   BLACKLIST    = 1
   WHITELIST    = 2
   OK           = 1
@@ -141,7 +141,9 @@ def optional_features_error(
       path: str,
       module: str,
       category: typing.Optional[typing.Union[typing.Type[Warning],typing.Type[Exception]]] = None) -> None:
-
+  """
+  Report an unsupported optional device feature.
+  """
   log.error(
     f'Device {node.device} does not support {attribute} used in {path}',
     category=log.IncorrectAttr if category is None else category,
@@ -156,7 +158,9 @@ def check_optional_features(
         check_mode: FC_MODE = FC_MODE.WHITELIST,
         category: typing.Optional[typing.Union[typing.Type[Warning],typing.Type[Exception]]] = None,
         features: typing.Optional[Box] = None) -> FC_MODE:
-
+  """
+  Validate topology data against optional device feature definitions.
+  """
   module = attribute.split('.')[0]
   if features is None:              # Fetch the initial device features (we'll set the value in recursive calls)
     d_features = get_device_features(node,topology.defaults)
@@ -196,15 +200,12 @@ def check_optional_features(
   else:                             # Assume the feature is supported
     return FC_MODE.OK
 
-"""
-process_device_inheritance: for devices with 'parent' attribute merge parent settings with the
-device settings.
-
-The main work is done in the process_child_device function that is called recursively to process
-multi-level inheritance. Please note that the circular references are broken at a random place
-in the ring because the 'parent' attribute is removed before the recursive call
-"""
 def process_child_device(dname: str, devices: Box) -> None:
+  """
+  This function is called recursively to process multi-level inheritance. 
+  Please note that the circular references are broken at a random place
+  in the ring because the 'parent' attribute is removed before the recursive call
+  """
   if not 'parent' in devices[dname]:                        # This device is not a child device, nothing to do
     return
   
@@ -221,18 +222,23 @@ def process_child_device(dname: str, devices: Box) -> None:
   data.remove_null_values(devices[dname])                   # Finally, remove null values from the resulting dictionary
 
 def process_device_inheritance(topology: Box) -> None:
+  """
+  Process parent/child inheritance for all devices.
+  process_device_inheritance: for devices with 'parent' attribute merge parent settings with the
+  device settings.
+  """
   devices = topology.defaults.devices
   for dname in list(devices.keys()):
     process_child_device(dname,devices)
 
-"""
-Add device features (optionally provider-limited) to module support list
-"""
 def add_device_module_support(
       topology: Box,
       features: Box,
       dname: str,
       provider: typing.Optional[str] = None) -> None:
+  """
+  Add device features (optionally provider-limited) to module support list
+  """
   sets = topology.defaults
   for m in list(features.keys()):                   # Iterate over device features
     f_value = features[m]
@@ -262,10 +268,10 @@ def add_device_module_support(
     if provider:
       features[m]._provider = provider              # Remember we're dealing with provider-specific features
 
-"""
-Build module supported_on lists based on device features settings
-"""
 def build_module_support_lists(topology: Box) -> None:
+  """
+  Build module supported_on lists based on device features settings
+  """
   sets = topology.defaults
   devs = sets.devices
 
@@ -280,10 +286,10 @@ def build_module_support_lists(topology: Box) -> None:
       if p_name in ddata and 'features' in ddata[p_name]:   # Do we have provider-specific features?
         add_device_module_support(topology,ddata[p_name].features,dname,p_name)
 
-"""
-Merge daemons definitions into device definitions
-"""
 def merge_daemons(topology: Box) -> None:
+  """
+  Merge daemons definitions into device definitions
+  """
   if not 'daemons' in topology.defaults:
     return
 
@@ -306,21 +312,21 @@ def merge_daemons(topology: Box) -> None:
 
     devices[dname].daemon_parent = devices[dname].parent    # Save the parent for future use (it is removed when merging parent device data)
 
-"""
-Add device-specific attributes
-"""
 def add_device_attributes(topology: Box) -> None:
+  """
+  Add device-specific attributes
+  """
   for dev_def in topology.defaults.devices.values():        # Iterate over all devices
     if 'attributes' in dev_def:                             # ... and add device specific attributes to the data model
       topology.defaults.attributes = topology.defaults.attributes + dev_def.attributes
 
-"""
-Initial device setting augmentation:
-
-* Build supported_on module lists
-* Future: Inherit device data from parent devices
-"""
 def augment_device_settings(topology: Box) -> None:
+  """
+  Initial device setting augmentation:
+
+  * Build supported_on module lists
+  * Future: Inherit device data from parent devices
+  """
   devices = topology.defaults.devices
 
   if not isinstance(devices,Box):

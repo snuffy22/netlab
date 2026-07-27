@@ -1,3 +1,7 @@
+"""
+Main topology transformation pipeline orchestration.
+"""
+
 #
 # Build full-blown topology data structures (nodes, links, global parameter) from high-level topology
 #
@@ -10,20 +14,21 @@ from ..data import global_vars, validate
 from ..utils import log, versioning
 from . import addressing
 
-"""
-Initializing the topology transformation:
 
-* The global variables (stored in topology defaults) are initialized
-* The attribute lists are adjusted
-* The search paths are expanded into absolute paths and pruned
-* Plugins are loaded
-* Device settings are initialized, including daemon- and child device
-  inheritance
-
-Note that the plugins have to be loaded before the device settings are
-inherited, or we cannot specify the new features for generic devices.
-"""
 def topology_init(topology: Box) -> None:
+  """
+  Initializing the topology transformation:
+
+  * The global variables (stored in topology defaults) are initialized
+  * The attribute lists are adjusted
+  * The search paths are expanded into absolute paths and pruned
+  * Plugins are loaded
+  * Device settings are initialized, including daemon- and child device
+    inheritance
+
+  Note that the plugins have to be loaded before the device settings are
+  inherited, or we cannot specify the new features for generic devices.
+  """
   global_vars.init(topology)
   augment.config.attributes(topology)
   augment.config.paths(topology)
@@ -31,6 +36,9 @@ def topology_init(topology: Box) -> None:
   augment.devices.augment_device_settings(topology)
 
 def transform_setup(topology: Box) -> None:
+  """
+  Execute the setup phase of topology transformation.
+  """
   topology_init(topology)                                   # Initialize variables, load plugins
   augment.topology.topology_sanity_check(topology)          # Do the basic sanity check
   versioning.check_topology_version(topology)               # Check topology/netlab version mismatch
@@ -77,6 +85,9 @@ def transform_setup(topology: Box) -> None:
   log.exit_on_error()
 
 def transform_data(topology: Box) -> None:
+  """
+  Execute node and link transformation.
+  """
   log.exit_on_error()
   augment.plugin.execute('pre_transform',topology)
   modules.pre_transform(topology)
@@ -103,6 +114,9 @@ def transform_data(topology: Box) -> None:
   modules.post_link_transform(topology)
 
 def post_transform(topology: Box) -> None:
+  """
+  Execute post-transform validation and cleanup.
+  """
   augment.validate.process_validation(topology)
   modules.post_transform(topology)                    # Call module post-transform routines
   augment.plugin.execute('post_transform',topology)   # ... and the plugin ones
@@ -125,6 +139,9 @@ def post_transform(topology: Box) -> None:
     topology.pop(remove_attr,None)
 
 def transform(topology: Box) -> None:
+  """
+  Run the topology transformation stage implemented by this module.
+  """
   transform_setup(topology)
   transform_data(topology)
   post_transform(topology)

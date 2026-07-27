@@ -1,3 +1,7 @@
+"""
+Link and interface normalization, IPAM, feature validation, and cleanup helpers.
+"""
+
 #
 # Create detailed link data structures including automatic interface numbering
 # from high-level topology
@@ -18,8 +22,7 @@ from ..modules import get_effective_module_attribute
 from ..utils import log, strings
 from . import addressing, devices
 
-VIRTUAL_INTERFACE_TYPES: typing.Final[typing.List[str]] = [
-  'loopback', 'tunnel', 'lag', 'svi' ]
+VIRTUAL_INTERFACE_TYPES: typing.Final[typing.List[str]] = [ 'loopback', 'tunnel', 'lag', 'svi' ]
 
 # Utility functions
 #
@@ -30,27 +33,27 @@ VIRTUAL_INTERFACE_TYPES: typing.Final[typing.List[str]] = [
 # - set_linknames: Assign names to all links without them
 
 def get_link_by_index(topology: Box, idx: int) -> typing.Optional[Box]:
-  '''
+  """
   Find a link from its linkindex
-  '''
+  """
   for link in topology.links:
     if link.linkindex == idx:
       return link
   return None
 
 def get_linkname(topology: Box, linkindex: int) -> str:
-  '''
+  """
   Get the name of a link referenced in an interface.
 
   Always returns string ('unknown' when the link cannot be found)
-  '''
+  """
   link = get_link_by_index(topology,linkindex)
   return link._linkname if link is not None else 'unknown'
 
 def get_next_linkindex(topology: Box) -> int:
-  '''
-  Get a new linkindex -- either the last linkindex + 1 or default value
-  '''
+  """
+  Return either the last linkindex + 1 or default value
+  """
   if not topology.links:
     topology.links = []
     return topology.defaults.get('link_index',1)
@@ -58,33 +61,33 @@ def get_next_linkindex(topology: Box) -> int:
   return topology.links[-1].linkindex + 1
 
 def set_linkindex(topology: Box) -> None:
-  '''
-  set_linkindex -- set link index for each link
-  '''
+  """
+  Set link index for each link
+  """
   linkindex = topology.defaults.get('link_index',1)
   for link in topology.links:
     link.linkindex = linkindex
     linkindex = linkindex + 1
 
 def set_linknames(topology: Box) -> None:
-  '''
-  set_linknames -- set link name if not defined
-  '''
+  """
+  Set link name if not defined
+  """
   for cnt,link in enumerate(topology.links):
     if link.get('group'):
       link._linkname = f'links[{link.group}]'
     elif not '_linkname' in link:
       link._linkname = f'links[{cnt+1}]'
 
-'''
-We cannot definitely say whether a node name is valid before the component
-expansion is complete. We can, however, do basic sanity checks.
-
-For the moment, we assume a node name is valid if it's part of the nodes
-dictionary (obviously) or if it starts with a name of a component. The final
-check of node names in links will be done after the component expansion.
-'''
 def is_nodename_valid(n: str, nodes: Box) -> bool:
+  """
+  We cannot definitely say whether a node name is valid before the component
+  expansion is complete. We can, however, do basic sanity checks.
+
+  For the moment, we assume a node name is valid if it's part of the nodes
+  dictionary (obviously) or if it starts with a name of a component. The final
+  check of node names in links will be done after the component expansion.
+  """
   if n in nodes:                          # Easy scenario: n is a known nodename
     return True
 
@@ -96,6 +99,9 @@ def is_nodename_valid(n: str, nodes: Box) -> bool:
   return bool(c_match)                    # Return True if the match list is not empty
 
 def adjust_interface_list(iflist: list, link: Box, nodes: Box) -> list:
+  """
+  Creates a flat list of interfaces, validates node references
+  """
   link_intf = []
   intf_cnt  = 0
   for n in iflist:                        # Sanity check of interface data
@@ -132,17 +138,15 @@ def adjust_interface_list(iflist: list, link: Box, nodes: Box) -> list:
 
   return link_intf
 
-"""
-Normalize the link objects:
-
-* Dictionary with 'interfaces' key ==> no change
-* Dictionary without 'interfaces' ==> extract nodes into 'interfaces', keep other keys
-* List ==> create a dictionary with 'interfaces' element
-* String ==> split into list, create a dictionary with 'interfaces' element
-
-"""
-
 def adjust_link_object(l: typing.Any, linkname: str, nodes: Box) -> typing.Optional[Box]:
+  """
+  Normalize the link objects:
+
+  * Dictionary with 'interfaces' key ==> no change
+  * Dictionary without 'interfaces' ==> extract nodes into 'interfaces', keep other keys
+  * List ==> create a dictionary with 'interfaces' element
+  * String ==> split into list, create a dictionary with 'interfaces' element
+  """
   if isinstance(l,dict) and not isinstance(l,Box):            # transform dict into Box if needed
     l = data.get_box(l)
 
@@ -197,6 +201,9 @@ def adjust_link_list(
       links: typing.Any, 
       nodes: Box,
       linkname_format: str = 'links[{link_cnt}]') -> list:
+  """
+  Creates a flat list of links, preserving formatted link names
+  """
   link_list: list = []
 
   if not(links):
@@ -233,10 +240,10 @@ def adjust_link_list(
 
   return link_list
 
-"""
-Validate link attributes
-"""
 def validate(topology: Box) -> None:
+  """
+  Validate link attributes
+  """
   # Allow provider-specific global attributes
   providers = get_object_attributes(['providers','outputs'],topology)
 
@@ -268,21 +275,21 @@ def validate(topology: Box) -> None:
         module='links',                                 # Function is called from 'links' module
         apply_defaults=False)
 
-"""
-Get the link attributes that have to be propagated to interfaces: full set
-of attributes minus the 'no_propagate' attributes 
-"""
 def get_link_propagate_attributes(defaults: Box) -> set:
+  """
+  Get the link attributes that have to be propagated to interfaces: full set
+  of attributes minus the 'no_propagate' attributes
+  """
   return set(defaults.attributes.link).union(set(defaults.attributes.link_internal)) - \
          set(defaults.attributes.link_no_propagate)
 
-"""
-get_unique_ifindex: given interface type, and a start and stop value, find a unique ifindex
-"""
 def get_unique_ifindex(
       node: Box,
       iftype: typing.Optional[str] = None,
       start: int = 1, stop: typing.Optional[int] = None) -> int:
+  """
+  Given interface type, and a start and stop value, find a unique ifindex
+  """
   if stop is None:                                # Assume we can have at most 1000 interfaces of a given type
     stop = start + 1000
 
@@ -301,29 +308,30 @@ def get_unique_ifindex(
     module='links')
   return start + len(node.interfaces) + 1         # Return something just to keep going (we'll fail anyway)
 
-"""
-Create a MAC address for an interface. Inputs:
-
-* Node data (node) -- needed to get node ID
-* Interface data (ifdata) -- needed to get ifindex
-* System defaults (defaults) -- needed to get the MAC OUI from the management pool
-"""
 def generate_interface_mac(node: Box, ifdata: Box, defaults: Box) -> str:
+  """
+  Create a MAC address for an interface.
+
+  Inputs:
+  * Node data (node) -- needed to get node ID
+  * Interface data (ifdata) -- needed to get ifindex
+  * System defaults (defaults) -- needed to get the MAC OUI from the management pool
+  """
   mac_pool = netaddr.EUI(defaults.addressing.mgmt.get('mac','CA-FE-00-00-00-00'))
   mac_pool[1] = (mac_pool[1] & 240) + int(ifdata.ifindex / 10000)       # Second byte: mgmt MAC OUI adjusted for interface type
   intf_mac = netaddr.EUI(int(mac_pool) + node.id * 65536 + ifdata.ifindex % 10000)
   return intf_mac.format(netaddr.mac_cisco)
 
-"""
-Add interface data structure to a node:
-
-* Add node-specific interface index
-* Create interface name
-* Add provider-specific interface data
-* Cleanup 'af: False' entries
-* Handle interface/node/system MTU
-"""
 def create_regular_interface(node: Box, ifdata: Box, defaults: Box) -> None:
+  """
+  Add interface data structure to a node:
+
+  * Add node-specific interface index
+  * Create interface name
+  * Add provider-specific interface data
+  * Cleanup 'af: False' entries
+  * Handle interface/node/system MTU
+  """
   ifindex_offset = devices.get_device_attribute(node,'ifindex_offset',defaults)
   if ifindex_offset is None:
     ifindex_offset = 1
@@ -380,6 +388,11 @@ def get_device_ifname(node: Box, devtype: str, ifdata: Box, defaults: Box) -> ty
   return iff.get(if_mode,iff.get('default',None))           # Otherwise try to get the correct interface name, with "default" as fallback
 
 def create_virtual_interface(node: Box, ifdata: Box, defaults: Box) -> None:
+  """
+  Used to ensure virtual interfaces such as loopbacks get non-conflicting internal indexes and
+  valid device-specific interface names, while reporting an error when the target device cannot
+  name or support that virtual interface type.
+  """
   devtype = ifdata.get('type','loopback')         # Get virtual interface type, default to loopback interface
   ifindex_offset = (
     devices.get_device_attribute(node,f'{devtype}_offset',defaults) or
@@ -422,6 +435,9 @@ def create_virtual_interface(node: Box, ifdata: Box, defaults: Box) -> None:
       module='links')
 
 def add_node_interface(node: Box, ifdata: Box, defaults: Box) -> Box:
+  """
+  Create node interface depending on type, adjusting MTU and removing IP addressing as needed
+  """
   if ifdata.get('type',None) in VIRTUAL_INTERFACE_TYPES:
     create_virtual_interface(node,ifdata,defaults)
   else:
@@ -452,19 +468,18 @@ def add_node_interface(node: Box, ifdata: Box, defaults: Box) -> Box:
   # return len(node.links)
   return node.interfaces[-1]
 
-"""
-Get gateway ID -- return None if not set or if 'gateway' is not a dict
-"""
 def get_gateway_id(link: Box) -> typing.Optional[int]:
+  """
+  Will return None if not set or if 'gateway' is not a dict
+  """
   if not isinstance(link.get('gateway',None),Box):
     return None
   return link.gateway.get('id',None)
 
-"""
-Set FHRP (anycast/VRRP/...) gateway on a link
-"""
-
 def set_fhrp_gateway(link: Box, pfx_list: Box, nodes: Box, link_path: str) -> None:
+  """
+  Set FHRP (anycast/VRRP/...) gateway on a link
+  """
   gwid = get_gateway_id(link)
   if not gwid:                                                        # No usable gateway ID, nothing to do
     return
@@ -492,27 +507,25 @@ def set_fhrp_gateway(link: Box, pfx_list: Box, nodes: Box, link_path: str) -> No
   if log.debug_active('links'):     # pragma: no cover (debugging)
     print(f'FHRP gateway set for {link}')
 
-"""
-Assign a prefix (IPv4+IPv6) to a link:
-
-* If the prefix is already defined, validate it
-* If the link is unnumbered, return 'unnumbered' prefix
-* Otherwise allocate prefix from a pool
-
-Allocating pool prefix:
-
-* Use addressing pool specified in link.pool
-* Otherwise, if link.role is set, add that to a list of pool candidates
-* Allocate a prefix from the first available candidate pool
-"""
-
 def assign_link_prefix(
       link: Box,
       pools: typing.List[str],
       addr_pools: Box,
       nodes: Box,
       link_path: str = 'links') -> Box:
+  """
+  Assign a prefix (IPv4+IPv6) to a link:
 
+  * If the prefix is already defined, validate it
+  * If the link is unnumbered, return 'unnumbered' prefix
+  * Otherwise allocate prefix from a pool
+
+  Allocating pool prefix:
+
+  * Use addressing pool specified in link.pool
+  * Otherwise, if link.role is set, add that to a list of pool candidates
+  * Allocate a prefix from the first available candidate pool
+  """
   if 'prefix' in link:                                    # Does the link have prefix parameters?
     pfx_data = addressing.parse_prefix(link.prefix,path=link_path)
     if log.debug_active('addr'):                          # pragma: no cover (debugging printout)
@@ -560,17 +573,17 @@ def assign_link_prefix(
   set_fhrp_gateway(link,pfx_list,nodes,link_path)
   return pfx_list
 
-"""
-Get IPAM policy for link/prefix
-
-* If the prefix is a bool ==> unnumbered
-* If the link is a P2P link ==> p2p (for backward compatibility)
-* If the prefix is large enough ==> id_based
-* Otherwise use sequential policy
-
-Return 'error' if the prefix size is too small
-"""
 def get_prefix_IPAM_policy(link: Box, pfx: typing.Union[ipaddress._BaseNetwork,bool], ndict: Box) -> str:
+  """
+  Get IPAM policy for link/prefix
+
+  * If the prefix is a bool ==> unnumbered
+  * If the link is a P2P link ==> p2p (for backward compatibility)
+  * If the prefix is large enough ==> id_based
+  * Otherwise use sequential policy
+
+  Return 'error' if the prefix size is too small
+  """
   if isinstance(pfx,bool):
     return 'unnumbered'
 
@@ -603,11 +616,11 @@ def get_prefix_IPAM_policy(link: Box, pfx: typing.Union[ipaddress._BaseNetwork,b
 
   return 'error'
 
-"""
-check_interface_host_bits: Check whether the IP addresses on an interface have host bits. The check is disabled
-for special prefixes (IPv4: /31, /32, IPv6: /127, /128)
-"""
 def check_interface_host_bits(intf: Box, node: Box, link: typing.Optional[Box] = None) -> bool:
+  """
+  Check whether the IP addresses on an interface have host bits. The check is disabled
+  for special prefixes (IPv4: /31, /32, IPv6: /127, /128)
+  """
   OK = True
 
   if 'ifname' in intf:
@@ -652,10 +665,10 @@ def check_interface_host_bits(intf: Box, node: Box, link: typing.Optional[Box] =
 
   return OK
 
-"""
-Set an interface address based on the link prefix and interface sequential number (could be node.id or counter)
-"""
 def set_interface_address(intf: Box, af: str, pfx: ipaddress._BaseNetwork, node_id: int) -> bool:
+  """
+  Set an interface address based on the link prefix and interface sequential number (could be node.id or counter)
+  """
   if af in intf:                                # Check static interface addresses
     if isinstance(intf[af],bool):               # unnumbered or unaddressed node, leave it alone
       return True
@@ -691,12 +704,12 @@ def set_interface_address(intf: Box, af: str, pfx: ipaddress._BaseNetwork, node_
 
   return False
 
-"""
-Unnumbered AF IPAM -- set interface address to 'True'
-
-If the interface address is set, validate that it's a valid address (can't be int)
-"""
 def IPAM_unnumbered(link: Box, af: str, pfx: typing.Optional[bool], ndict: Box) -> bool:
+  """
+  Unnumbered AF IPAM -- set interface address to 'True'
+
+  If the interface address is set, validate that it's a valid address (can't be int)
+  """
   OK = True
   for intf in link.interfaces:
     if not af in intf:                            # No static address
@@ -756,15 +769,15 @@ IPAM_dispatch: typing.Final[dict] = {
     'loopback': IPAM_loopback
   }
 
-"""
-Assign addresses to all interfaces on a link
-
-* Skip if the link has no usable prefix (l2only link)
-* Use IPAM_unnumbered on old-style unnumbered links
-* Figure out allocation policies (based on link type, prefix size, number of interfaces)
-* Execute selected IPAM routing
-"""
 def assign_interface_addresses(link: Box, addr_pools: Box, ndict: Box, defaults: Box) -> None:
+  """
+  Assign addresses to all interfaces on a link
+
+  * Skip if the link has no usable prefix (l2only link)
+  * Use IPAM_unnumbered on old-style unnumbered links
+  * Figure out allocation policies (based on link type, prefix size, number of interfaces)
+  * Execute selected IPAM routing
+  """
   global IPAM_dispatch
   pfx_list = link.get('prefix',None)
   if not pfx_list:
@@ -838,10 +851,10 @@ def assign_interface_addresses(link: Box, addr_pools: Box, ndict: Box, defaults:
   for intf in link.interfaces:
     check_interface_host_bits(intf,ndict[intf.node],link)
 
-"""
-cleanup 'af: False' entries from interfaces
-"""
 def cleanup_link_interface_AF_entries(link: Box) -> None:
+  """
+  Remove 'af: False' entries from interfaces
+  """
   for af in ('ipv4','ipv6'):                    # Iterate over address families
     for intf in link.interfaces:                # ... and link interfaces
       if not af in intf:                        # Nothing to check
@@ -870,23 +883,23 @@ def cleanup_link_interface_AF_entries(link: Box) -> None:
           module='links')
         continue
 
-"""
-Get interface description from interface neighbors
-"""
 def get_interface_description(node_name: str, intf: Box) -> str:
+  """
+  Get interface description from interface neighbors
+  """
   ngb_names = [ n.node for n in intf.neighbors ]
   ngb_list  = 'stub' if not ngb_names else ngb_names[0] if len(ngb_names) == 1 else f"[{','.join(ngb_names)}]"
   return f'{node_name} -> {ngb_list}' 
 
-"""
-Calculate interface description:
-
-* Link name (if exists)
-* Stub link (on a link with a single node)
-* A -> B when a link has two nodes
-* A -> [ B,C,D ] when a link has more than two nodes
-"""
 def create_ifname(node_name: str, ngb_list: typing.List[str],p2p_OK: bool = True) -> str:
+  """
+  Generate interface description:
+
+  * Link name (if exists)
+  * Stub link (on a link with a single node)
+  * A -> B when a link has two nodes
+  * A -> [ B,C,D ] when a link has more than two nodes
+  """
   if not ngb_list:
     return f'{node_name} -> stub'
 
@@ -903,6 +916,9 @@ def create_ifname(node_name: str, ngb_list: typing.List[str],p2p_OK: bool = True
   return ifname
 
 def set_interface_name(ifdata: Box, link: Box, ifcnt: int) -> None:
+  """
+  Set interface name, get from link or create from node_name
+  """
   link_iface = link.interfaces[ifcnt]
   ifdata.name = get_effective_module_attribute('name',intf=link_iface,link=link)
   if ifdata.name:
@@ -912,10 +928,10 @@ def set_interface_name(ifdata: Box, link: Box, ifcnt: int) -> None:
   n_list = [ link.interfaces[i].node for i in range(0,len(link.interfaces)) if i != ifcnt ]
   ifdata.name = create_ifname(node_name,n_list)
 
-"""
-set_parent_interface -- set the parent interface and IP address for the IPv4 unnumbered interfaces
-"""
 def set_parent_interface(ifdata: Box, node: Box) -> None:
+  """
+  Set the parent interface and IP address for the IPv4 unnumbered interfaces
+  """
   if ifdata.get('ipv4',None) is not True:                         # We're interested only in interfaces that have...
     return                                                        # ... ipv4 set to True
 
@@ -927,10 +943,10 @@ def set_parent_interface(ifdata: Box, node: Box) -> None:
   if lbipv4:                                                      # Save the parent IPv4 address (needed for static routes)
     ifdata._parent_ipv4 = lbipv4
 
-"""
-Create node interfaces from link interfaces
-"""
 def create_node_interfaces(link: Box, addr_pools: Box, ndict: Box, defaults: Box) -> None:
+  """
+  Create node interfaces from link interfaces
+  """
   link_attr_propagate = get_link_propagate_attributes(defaults)
 
   if log.debug_active('links'):     # pragma: no cover (debugging)
@@ -983,14 +999,14 @@ def create_node_interfaces(link: Box, addr_pools: Box, ndict: Box, defaults: Box
       data.cleanup_internal_attributes(ngh_data,['_removed_attr'])
       ifdata.neighbors.append(ngh_data)
 
-"""
-set_link_loopback_type: when requested, convert stub links to extra loopbacks
-
-This function is called for links that have a single node attached to them. If the device
-supports extra loopbacks, and if the 'stub_loopback' parameter is set in the device
-or system defailts, the link type is set to loopback.
-"""
 def set_link_loopback_type(link: Box, nodes: Box, defaults: Box) -> None:
+  """
+  When requested, convert stub links to extra loopbacks
+
+  This function is called for links that have a single node attached to them. If the device
+  supports extra loopbacks, and if the 'stub_loopback' parameter is set in the device
+  or system defailts, the link type is set to loopback.
+  """
   node = link.interfaces[0].node
   ndata = nodes[node]
   features = devices.get_device_features(ndata,defaults)
@@ -1009,11 +1025,11 @@ def set_link_loopback_type(link: Box, nodes: Box, defaults: Box) -> None:
   if make_loopback or isinstance(make_loopback,Box):
     link.type = 'loopback'
 
-"""
-Count the number of nodes and hosts on the link. Can be called multiple times
-as it checks whether it already did the job before starting the counting process
-"""
 def count_link_nodes(link: Box, nodes: Box) -> None:
+  """
+  Count the number of nodes and hosts on the link. Can be called multiple times
+  as it checks whether it already did the job before starting the counting process
+  """
   if 'node_count' in link:                    # Already did a count, we're good  
     return
 
@@ -1037,10 +1053,10 @@ def count_link_nodes(link: Box, nodes: Box) -> None:
   if router_count > 0:                        # Remember that we have routers (so we won't get stub networks)
     link.router_count = router_count
 
-"""
-Get the default link type based on number of nodes. Also used for default pool selection
-"""
 def get_default_link_type(link: Box) -> str:
+  """
+  Get the default link type based on number of nodes. Also used for default pool selection
+  """
   if link.node_count > 2:
     return 'lan'
   
@@ -1083,6 +1099,9 @@ def set_link_bridge_name(link: Box, defaults: Box) -> None:
       'interfaces')
 
 def check_link_type(data: Box) -> bool:
+  """
+  Checks that each link type has the correct number of nodes attached
+  """
   node_cnt = data.get('node_count') # link_node_count(data,nodes)
   link_type = data.get('type')
 
@@ -1127,10 +1146,6 @@ def check_link_type(data: Box) -> bool:
 
   return True
 
-#
-# Interface Feature Check -- validate that the selected interface features work on target lab devices
-#
-
 def interface_fc_ipv4(ifdata: Box, ndata: Box, features: Box, more_data: str) -> None:
   if 'ipv4' not in ifdata:
     return
@@ -1169,6 +1184,9 @@ def interface_fc_ipv6(ifdata: Box, ndata: Box, features: Box, more_data: str) ->
       module='interfaces')
 
 def interface_feature_check(nodes: Box, defaults: Box) -> None:
+  """
+  Validate that the selected interface features work on target lab devices
+  """
   for node,ndata in nodes.items():
     features = devices.get_device_features(ndata,defaults)
     for ifdata in ndata.get('interfaces',[]):
@@ -1176,23 +1194,23 @@ def interface_feature_check(nodes: Box, defaults: Box) -> None:
       interface_fc_ipv4(ifdata,ndata,features,more_data)
       interface_fc_ipv6(ifdata,ndata,features,more_data)
 
-'''
-copy_link_gateway -- copy link gateway addresses to node-on-link (future interface) data
-
-The link.gateway.ipv4/link.gateway.ipv6 attributes are not copied into
-node-on-link data automatically, so we need an extra step after assigning the
-link gateway IP (based on gateway.id)
-
-Please note that:
-
-* Links that have no gateway nodes attached to them might have 'gateway' set to
-  True/False
-* The link gateway IP has to be propagated only to nodes that use the gateway
-  module to avoid confusion in configuration templates.
-* The whole gateway structure is copied into host interface data to get static
-  routing on VLANs working correctly
-'''
 def copy_link_gateway(link: Box, nodes: Box) -> None:
+  """
+  Copy link gateway addresses to node-on-link (future interface) data
+
+  The link.gateway.ipv4/link.gateway.ipv6 attributes are not copied into
+  node-on-link data automatically, so we need an extra step after assigning the
+  link gateway IP (based on gateway.id)
+
+  Please note that:
+
+  * Links that have no gateway nodes attached to them might have 'gateway' set to
+    True/False
+  * The link gateway IP has to be propagated only to nodes that use the gateway
+    module to avoid confusion in configuration templates.
+  * The whole gateway structure is copied into host interface data to get static
+    routing on VLANs working correctly
+  """
   if 'gateway' not in link:
     return
   for intf in link.interfaces:                              # Copy link gateway into interface attributes
@@ -1207,22 +1225,21 @@ def copy_link_gateway(link: Box, nodes: Box) -> None:
       if af in link.gateway:
         intf.gateway[af] = link.gateway[af]
 
-"""
-process_link_ra -- copy link IPv6 RA parameters to node-on-link (future interface) data
-
-The link.ra attributes are copied only into the router nodes that support RA
-(features.initial.ra). _netlab_ creates a warning message if a link has an 'ra'
-dictionary but no routers attached, or if no routers attached to the link supports
-'ra' attribute.
-
-Furthermore, when there are no link/intf RA settings, all routers supporting 'ra'
-attributes get the default RA settings when there are hosts attached to the link,
-hopefully simplifying the configuration templates.
-
-TODO: If a router is a DHCP relay and supports 'ra', 'ra.dhcp' should be set to 'all'
-"""
-
 def process_link_ra(link: Box, nodes: Box, defaults: Box) -> None:
+  """
+  Copy link IPv6 RA parameters to node-on-link (future interface) data
+
+  The link.ra attributes are copied only into the router nodes that support RA
+  (features.initial.ra). _netlab_ creates a warning message if a link has an 'ra'
+  dictionary but no routers attached, or if no routers attached to the link supports
+  'ra' attribute.
+
+  Furthermore, when there are no link/intf RA settings, all routers supporting 'ra'
+  attributes get the default RA settings when there are hosts attached to the link,
+  hopefully simplifying the configuration templates.
+
+  TODO: If a router is a DHCP relay and supports 'ra', 'ra.dhcp' should be set to 'all'
+  """
   rtr_list  = []
   host_list = []
 
@@ -1288,10 +1305,10 @@ def process_link_ra(link: Box, nodes: Box, defaults: Box) -> None:
 
   return
 
-"""
-Set node.af flags to indicate that the node has IPv4 and/or IPv6 address family configured on its interfaces
-"""
 def set_node_af(nodes: Box) -> None:
+  """
+  Set node.af flags to indicate that the node has IPv4 and/or IPv6 address family configured on its interfaces
+  """
   for n in nodes.values():
     for af in ['ipv4','ipv6']:
       if n.af.get(af) is True:
@@ -1301,15 +1318,14 @@ def set_node_af(nodes: Box) -> None:
           n.af[af] = True
           continue
 
-'''
-check_duplicate_address: Check whether any two nodes on the link got duplicate IP
-'''
 def check_duplicate_address(
       link: Box,
       link_name: typing.Optional[str] = None,
       obj_name: str = 'link',
       module: typing.Optional[str] = None) -> None:
-
+  """
+  Check whether any two nodes on the link got duplicate IP
+  """
   for af in log.AF_LIST:
     dup_dict = {}
     gw_ip = link.get(f'gateway.{af}',None)
@@ -1329,14 +1345,14 @@ def check_duplicate_address(
       else:
         dup_dict[if_ip] = intf.node
 
-'''
-expand_groups -- expand link groups (identified by 'group' and 'members' attributes) into individual links.
-Retain the order of the expanded link group in the overall list of links
-
-This function is called from init_links very early in the topology initialization process
-and must do its own data validation.
-'''
 def expand_groups(topology: Box) -> None:
+  """
+  Expand link groups (identified by 'group' and 'members' attributes) into individual links.
+  Retain the order of the expanded link group in the overall list of links
+
+  This function is called from init_links very early in the topology initialization process
+  and must do its own data validation.
+  """
   expanded_links = []
   for link in list(topology.links):                 # Iterate over existing links (that's why we have to cast it as a list)
     if not 'group' in link:                         # Not a group link, move on
@@ -1385,6 +1401,9 @@ def links_init(topology: Box) -> None:
   set_linkindex(topology)
 
 def transform(link_list: typing.Optional[Box], defaults: Box, nodes: Box, pools: Box) -> typing.Optional[Box]:
+  """
+  Run the topology transformation stage implemented by this module.
+  """
   if not link_list:
     return None
 
@@ -1411,12 +1430,12 @@ def transform(link_list: typing.Optional[Box], defaults: Box, nodes: Box, pools:
   set_node_af(nodes)
   return link_list
 
-"""
-set_unnumbered_peers - mark IPv4 unnumbered peering links with the IP address of the peer
-
-This is done late in the process (during cleanup) in case VRFs with loopbacks are used
-"""
 def set_unnumbered_peers(topology: Box) -> None:
+  """
+  Mark IPv4 unnumbered peering links with the IP address of the peer
+
+  This is done late in the process (during cleanup) in case VRFs with loopbacks are used
+  """
   for name,node in topology.nodes.items():
     for intf in node.interfaces:
       if len(intf.neighbors) != 1:

@@ -1,10 +1,11 @@
-'''
+"""
 Create detailed node-level data structures from topology
 
 * Discover desired images (boxes)
 * Add default module list to nodes without specific modules
 * Set management interface data
-'''
+"""
+
 import typing
 
 import netaddr
@@ -19,22 +20,23 @@ from ..modules._dataplane import extend_id_set, get_next_id, is_id_used, set_id_
 from ..utils import log
 from . import addressing, devices, groups, links
 
-"""
-Reserve a node ID, for example for gateway ID, return True if successful, False if duplicate
-"""
+
 def reserve_id(n_id: int) -> bool:
+  """
+  Reserve a node ID, for example for gateway ID, return True if successful, False if duplicate
+  """
   if is_id_used('node_id',n_id):
     return False
 
   extend_id_set('node_id',set([n_id]))
   return True
 
-"""
-Node data structure is a dictionary. Convert lists of dictionaries (now obsolete)
-Or lists of strings into a unified dictionary structure
-"""
 
 def create_node_dict(nodes: Box) -> Box:
+  """
+  Node data structure is a dictionary. Convert lists of dictionaries (now obsolete)
+  Or lists of strings into a unified dictionary structure
+  """
   if isinstance(nodes,dict):
     node_dict = nodes
   else:
@@ -68,11 +70,11 @@ def create_node_dict(nodes: Box) -> Box:
   log.exit_on_error()
   return node_dict
 
-"""
-Validate node attributes
-"""
 def validate(topology: Box) -> None:
-  # Allow provider-, tool- and output- specific node attributes
+  """
+  Validate node attributes
+  * Allow provider-, tool- and output- specific node attributes
+  """
   extra = get_object_attributes(topology.defaults.attributes.node_extra_ns,topology)
   for n_name,n_data in topology.nodes.items():
     must_be_id(
@@ -101,10 +103,10 @@ def validate(topology: Box) -> None:
         modules=n_data.get('module',[]),              # ... against node modules
         module='nodes')                               # Function is called from 'nodes' module
 
-"""
-Sets missing management interface names and MAC, IPv4, and IPv6 addresses from the mgmt pool
-"""
 def augment_mgmt_if(node: Box, defaults: Box, addrs: typing.Optional[Box]) -> None:
+  """
+  Sets missing management interface names and MAC, IPv4, and IPv6 addresses from the mgmt pool
+  """
   if 'ifname' not in node.mgmt:
     mgmt_if = devices.get_device_attribute(node,'mgmt_if',defaults)
     if not mgmt_if:
@@ -189,10 +191,10 @@ def augment_mgmt_if(node: Box, defaults: Box, addrs: typing.Optional[Box]) -> No
       category=log.MissingValue,
       module='nodes')
 
-"""
-Check duplicate management MAC/IPv4/IPv6 addresses
-"""
 def check_duplicate_mgmt_addr(topology: Box) -> None:
+  """
+  Check for duplicate management MAC/IPv4/IPv6 addresses
+  """
   used_addr: dict = {}
   for af in ['ipv4','ipv6','mac']:
     used_addr[af] = {}
@@ -208,10 +210,10 @@ def check_duplicate_mgmt_addr(topology: Box) -> None:
       else:
         used_addr[af][n_addr] = nname
 
-"""
-Set up the default loopback interface
-"""
 def augment_loopback_interface(n: Box, pools: Box, topology: Box) -> None:
+  """
+  Set up the default loopback interface
+  """
   lb_value = n.get('loopback',None)
   lb_ifname = devices.get_loopback_name(n,topology)
 
@@ -275,11 +277,11 @@ def augment_loopback_interface(n: Box, pools: Box, topology: Box) -> None:
 
   links.check_interface_host_bits(n.loopback,n)
 
-"""
-Add device data to nodes
-"""
 
 def find_node_device(n: Box, topology: Box) -> bool:
+  """
+  Find node device, add device data to node
+  """
   if 'device' not in n:
     n.device = topology.defaults.device
 
@@ -319,10 +321,10 @@ def find_node_device(n: Box, topology: Box) -> bool:
 
   return True
 
-"""
-Find the image/box for the container/device
-"""
 def find_node_image(n: Box, topology: Box) -> bool:
+  """
+  Find the image/box for the container/device
+  """
   provider = devices.get_provider(n,topology.defaults)
 
   pdata = devices.get_provider_data(n,topology.defaults)
@@ -361,11 +363,10 @@ def find_node_image(n: Box, topology: Box) -> bool:
 
   return False
 
-"""
-Validate provider setting used in a node
-"""
-
 def validate_node_provider(n: Box, topology: Box) -> bool:
+  """
+  Validate provider settings used in a node
+  """
   if not 'provider' in n:
     return True
 
@@ -390,14 +391,14 @@ def validate_node_provider(n: Box, topology: Box) -> bool:
   topology[topology.provider].providers[n.provider] = True
   return True
 
-"""
-Add provider data to nodes:
-
-* Check whether the node device exists
-* Copy device.provider.node into node.provider
-* Get device image
-"""
 def augment_node_provider_data(topology: Box) -> None:
+  """
+  Add provider data to nodes:
+
+  * Check whether the node device exists
+  * Copy device.provider.node into node.provider
+  * Get device image
+  """
   if not topology.defaults.devices:
     log.fatal('Device defaults (defaults.devices) are missing')
 
@@ -411,10 +412,10 @@ def augment_node_provider_data(topology: Box) -> None:
     if not find_node_image(n,topology):
       continue
 
-"""
-Add system data to devices -- hacks that are not yet covered in the settings structure
-"""
 def augment_node_system_data(topology: Box) -> None:
+  """
+  Add system data to devices -- hacks that are not yet covered in the settings structure
+  """
   if 'mtu' in topology.defaults.get('interfaces',{}):
     if not isinstance(topology.defaults.interfaces.mtu,int):            # pragma: no cover
       log.error(
@@ -432,11 +433,11 @@ def augment_node_system_data(topology: Box) -> None:
               log.IncorrectValue,
               'nodes')
 
-"""
-augment_node_device_data: copy attributes that happen to be node attributes from device defaults into node data
-"""
 
 def augment_node_device_data(n: Box, topology: Box) -> None:
+  """
+  Copy attributes that happen to be node attributes from device defaults into node data
+  """
   defaults = topology.defaults
   node_attr = defaults.attributes.get('node',[])
   dev_data  = devices.get_consolidated_device_data(n,defaults)
@@ -495,14 +496,15 @@ def augment_node_device_data(n: Box, topology: Box) -> None:
   if not features.get('initial.collect',False):
     append_to_list(topology.groups.netlab_no_collect,'members',n.name)
 
-'''
-Main node transformation code
-
-* set node ID
-* copy device data from defaults
-* set management IP and MAC addresses
-'''
 def transform(topology: Box, defaults: Box, pools: Box) -> None:
+  """
+  Main node transformation code
+  Run the topology transformation stage implemented by this module.
+
+  * set node ID
+  * copy device data from defaults
+  * set management IP and MAC addresses
+  """
   MAX_NODE_ID = global_vars.get_const('MAX_NODE_ID',150)
 
   for name,n in topology.nodes.items():
@@ -535,11 +537,11 @@ def transform(topology: Box, defaults: Box, pools: Box) -> None:
 
   check_duplicate_mgmt_addr(topology)
 
-'''
-Cleanup non-Ansible configuration file data -- remove all daemon/node config mappings that
-are not used by a module, a plugin (based on "config" data) or a device itself
-'''
 def cleanup_non_ansible_config(n: Box) -> None:
+  """
+  Cleanup non-Ansible configuration file data -- remove all daemon/node config mappings that
+  are not used by a module, a plugin (based on "config" data) or a device itself
+  """
   for kw in ('_daemon_config','_node_config'):
     if kw not in n:
       continue
@@ -558,9 +560,9 @@ def cleanup_non_ansible_config(n: Box) -> None:
         n[kw].pop(k,None)                                     # Config template not used, remove it
 
 def check_unique_ifnames(n: Box) -> None:
-  '''
+  """
   Check uniqueness of interface names
-  '''
+  """
   ifnames: dict = {}
   for intf in n.interfaces:
     if 'ifname' not in intf:
@@ -579,9 +581,9 @@ def get_node_interface(
       ifindex: typing.Optional[int] = None,
       ifname: typing.Optional[str] = None
     ) -> typing.Optional[Box]:
-  '''
+  """
   Get the node interface with the specified ifindex
-  '''
+  """
   for intf in ndata.interfaces:
     if ifindex is not None and intf.ifindex == ifindex:
       return intf
@@ -590,19 +592,19 @@ def get_node_interface(
 
   return None
 
-'''
-Cleanup node MTU values:
-
-* Check the minimum and maximum MTU values
-* For devices with system MTU remove the interface MTU values identical to system MTU
-* Set _use_ip_mtu flag if the interface MTU is lower than min_phy_mtu
-
-Also, throw errors if:
-
-* MTU is lower than 1280 but the node uses IPv6
-* MTU is lower than min_mtu or higher than max_mtu
-'''
 def cleanup_mtu(node: Box, topology: Box) -> None:
+  """
+  Cleanup node MTU values:
+
+  * Check the minimum and maximum MTU values
+  * For devices with system MTU remove the interface MTU values identical to system MTU
+  * Set _use_ip_mtu flag if the interface MTU is lower than min_phy_mtu
+
+  Also, throw errors if:
+
+  * MTU is lower than 1280 but the node uses IPv6
+  * MTU is lower than min_mtu or higher than max_mtu
+  """
   features = devices.get_device_features(node,topology.defaults).initial
   system_mtu = bool(features.system_mtu) and 'mtu' in node
   if system_mtu:
@@ -648,10 +650,10 @@ def cleanup_mtu(node: Box, topology: Box) -> None:
     if 'min_phy_mtu' in features and intf.mtu < features.min_phy_mtu:
       intf._use_ip_mtu = True
 
-'''
-Final cleanup of node data
-'''
 def cleanup(topology: Box) -> None:
+  """
+  Final cleanup of node data
+  """
   plugin_config = topology.get('_plugin_config',[])
 
   for name,n in topology.nodes.items():
@@ -666,10 +668,10 @@ def cleanup(topology: Box) -> None:
 
   topology.pop('_plugin_config',None)
 
-'''
-Return a copy of the topology (leaving original topology unchanged) with unmanaged devices removed
-'''
 def ghost_buster(topology: Box) -> Box:
+  """
+  Return a copy of the topology (leaving original topology unchanged) with unmanaged devices removed
+  """
   log.print_verbose('Removing unmanaged devices from topology')
   # Create a copy of topology
   topo_copy = data.get_box(topology)

@@ -1,8 +1,8 @@
-'''
+"""
 Add group support. This module handles group-related data structures and
 data transformation. The end result is a dictionary of groups in 'groups'
 top-level element. That dictionary is merged from global- and node-level parameters
-'''
+"""
 
 import copy
 import fnmatch
@@ -18,10 +18,11 @@ from ..data.validate import get_object_attributes, validate_attributes
 from ..modules import bgp, propagate_global_modules
 from ..utils import log
 
-'''
-Return computed members of special-purpose node group ('all' or device)
-'''
+
 def special_node_group_members(group: str, topology: Box) -> typing.Optional[list]:
+  """
+  Return computed members of special-purpose node group ('all' or device)
+  """
   if group == 'all':
     return list(topology.nodes)
 
@@ -30,10 +31,10 @@ def special_node_group_members(group: str, topology: Box) -> typing.Optional[lis
 
   return None
 
-'''
-Return members of the specified group. Recurse through child groups if needed
-'''
 def group_members(topology: Box, group: str, grp_type: str = 'node', count: int = 0) -> list:
+  """
+  Return members of the specified group. Recurse through child groups if needed
+  """
   members: typing.List[str] = []
   if not group in topology.groups:  # pragma: no cover (just-in case catch, impossible to get here)
     log.error(
@@ -67,33 +68,33 @@ def group_members(topology: Box, group: str, grp_type: str = 'node', count: int 
 
   return members
 
-'''
-Check validity of 'groups' data structure
-
-* groups -- the group data (topology- or default groups)
-* topology -- top-level topology (have to pass it to get attributes from fixed location)
-* prune_members -- remove non-existent group members (used for default groups)
-
-The checks are implemented in two functions:
-
-* check_group_data_sanity: called very early in the transformation process to do basic sanity
-  checks needed before we can auto-create group members (if required)
-* check_group-data_structure: called later when we already known topology-wide modules
-  and can perform full node attribute validation
-'''
+# TODO FIX MORE WORK
 def check_group_data_sanity(
       topology: Box,
       parent_path: typing.Optional[str] = '') -> bool:
+  """
+  Check validity of 'groups' data structure
 
+  * groups -- the group data (topology- or default groups)
+  * topology -- top-level topology (have to pass it to get attributes from fixed location)
+  * prune_members -- remove non-existent group members (used for default groups)
+
+  The checks are implemented in two functions:
+
+  * check_group_data_sanity: called very early in the transformation process to do basic sanity
+    checks needed before we can auto-create group members (if required)
+  * check_group-data_structure: called later when we already known topology-wide modules
+    and can perform full node attribute validation
+  """
   parent = topology.get(parent_path) if parent_path else topology
   grp_namespace = f'{parent_path} ' if parent_path else ''
 
   if must_be_dict(parent,'groups',parent_path,create_empty=True,module='topology') is None:
     return False
 
-  '''
+  """
   Transform group-as-list into group-as-dictionary
-  '''
+  """
   for grp in parent.groups.keys():
     if grp.startswith('_'):                       # Skip stuff starting with underscore
       continue                                    # ... could be system settings
@@ -123,15 +124,12 @@ def check_group_data_sanity(
   return True
 
 def group_re_match(m_expr: str, names: list) -> list:
+  """
+  Perform a regular expression match on Group.
+  """
   pattern = re.compile(m_expr[1:])
   return [ member for member in names if pattern.fullmatch(member) ]
 
-"""
-Expand the regular expressions or globs in the list of group members
-
-Most of the function is just error checking and reporting, there's very little
-actual work done here
-"""
 def expand_group_members(
       g_members: list,                # Members of the current group that have to be checked/expanded
       g_objects: Box,                 # Parent objects (nodes, VLANs, VRFs)
@@ -139,7 +137,12 @@ def expand_group_members(
       g_name: str,                    # The name of the current group (needed for error messages)
       g_type: str,                    # Group type (node/vlan/vrf)
       g_prune: bool = False) -> list: # Prune non-existent group members (used in default groups)
+  """
+  Expand the regular expressions or globs in the list of group members
 
+  Most of the function is just error checking and reporting, there's very little
+  actual work done here
+  """
   members: typing.List[str] = []
   g_names: typing.List[str] = []
   for m_id in g_members:
@@ -210,14 +213,17 @@ def check_group_data_structure(
       topology: Box,
       parent_path: typing.Optional[str] = '',
       prune_members: bool = False) -> None:
-
+  """
+  Validates and normalizes group definitions in a topology, including group names,
+  group types, member lists, module lists, reserved-name conflicts, and device-group misuse.
+  """
   parent = topology.get(parent_path) if parent_path else topology
   grp_namespace = f'{parent_path} ' if parent_path else ''
   reserved_names = list(topology.defaults.devices) + ['all']
 
-  '''
+  """
   Sanity checks on global group data
-  '''
+  """
 
   list_of_modules = modules.list_of_modules(topology)
   group_names = list(parent.groups)
@@ -279,7 +285,11 @@ def check_group_data_structure(
 def validate_group_data(
       topology: Box,
       parent_path: typing.Optional[str] = '') -> None:
-
+  """
+  Validates group configuration against the correct schema and module context, handles legacy node_data,
+  rejects misplaced control attributes, and normalizes node-related group settings into gdata.node_data
+  for later application to member nodes
+  """
   parent = topology.get(parent_path) if parent_path else topology
   grp_namespace = f'{parent_path} ' if parent_path else ''
 
@@ -353,21 +363,18 @@ def validate_group_data(
       gdata.node_data[k] = gdata[k]
       gdata.pop(k,None)
 
-
-'''
-Auto-create group members
-
-Inputs:
-* parent object (topology or defaults)
-* topology (needed to add nodes)
-* Global auto-create setting (set to 'False' for default groups)
-'''
-
 def auto_create_members(
       parent: Box,
       topology: Box,
       default_create: bool) -> None:
+  """
+  Auto-create group members
 
+  Inputs:
+  * parent object (topology or defaults)
+  * topology (needed to add nodes)
+  * Global auto-create setting (set to 'False' for default groups)
+  """
   if not 'groups' in parent:                      # Parent has no groups, what are we doing here?
     return
 
@@ -400,10 +407,10 @@ def auto_create_members(
       else:
         topology[obj_ns][n] = {}                  # For all others, create a placeholder object
   
-'''
-Add node-level group settings to global groups
-'''
 def add_node_to_group(node: str, group: str, topology: Box) -> None:
+  """
+  Add node-level group settings to global groups
+  """
   g_data = topology.groups[group]
   if g_data.get('type','node') != 'node':
     log.error(
@@ -414,6 +421,9 @@ def add_node_to_group(node: str, group: str, topology: Box) -> None:
   data.append_to_list(g_data,'members',node)
 
 def add_node_level_groups(topology: Box) -> None:
+  """
+  Add node level groups.
+  """
   for name,n in topology.nodes.items():
     if not 'group' in n:
       continue
@@ -422,11 +432,11 @@ def add_node_level_groups(topology: Box) -> None:
       for grpname in n.group:
         add_node_to_group(name,grpname,topology)
 
-'''
-Check recursive group definitions
-'''
 
 def check_recursive_chain(topology: Box, chain: list, group: str) -> typing.Optional[list]:
+  """
+  Check recursive group definitions
+  """
   if not group in topology.groups: # pragma: no cover (if we ever get here we're seriously messed up)
     log.fatal(
       'Internal error: unknown group in check_recursive_chain')
@@ -445,6 +455,9 @@ def check_recursive_chain(topology: Box, chain: list, group: str) -> typing.Opti
   return None
 
 def check_recursive_groups(topology : Box) -> None:
+  """
+  Check recursive groups.
+  """
   for gname in topology.groups.keys():
     if gname.startswith('_'):                  # Skip settings starting with underscore
       continue
@@ -452,6 +465,9 @@ def check_recursive_groups(topology : Box) -> None:
       return
 
 def reverse_topsort(topology: Box) -> list:
+  """
+  Reverse topsort.
+  """
   group_copy = get_box(topology.groups)        # Make a copy of the group dictionary
   sort_list: typing.List[str] = []
 
@@ -471,10 +487,10 @@ def reverse_topsort(topology: Box) -> list:
 
   return sort_list
 
-'''
-Copy group-level module or device setting into node data
-'''
 def copy_group_device_module(topology: Box) -> None:
+  """
+  Copy group-level module or device setting into node data
+  """
   sorted_groups = reverse_topsort(topology)
   for grp in sorted_groups:                                 # First, set the device type
     gdata = topology.groups[grp]
@@ -534,10 +550,10 @@ def copy_group_device_module(topology: Box) -> None:
       if log.debug_active('groups'):
         print(f'... adding module {gdata.module} to {name}. Node modules now {ndata.module}')
 
-'''
-Copy node data from group into group members
-'''
 def copy_group_node_data(topology: Box,pfx: str) -> None:
+  """
+  Copy node data from group into group members
+  """
   topo_modules = topology.get('module',[])                            # Get list of default list of modules
   for grp in reverse_topsort(topology):
     if not grp.startswith(pfx):                                       # Skip groups that don't match the current prefix (ex: BGP autogroups)
@@ -569,25 +585,24 @@ def copy_group_node_data(topology: Box,pfx: str) -> None:
       if isinstance(topology[g_ns][name],Box):                        # If the object is a box
         topology[g_ns][name] = merge_data + topology[g_ns][name]      # ... merge group data with it
 
-'''
-Export node_data from groups to topology
-
-Used to create module-specific data structures in pre_transform hook before the
-node data is populated from groups.node_data
-
-Inputs:
-* data structure name ('vrfs' or 'vlans')
-* module name ('vrf' or 'vlan') -- used in error messages
-* copy_keys: attributes that should be copied to topology-level data structure
-* unique_keys: attributes that must be unique (set to copy_keys when empty)
-'''
 def export_group_node_data(
       topology: Box,
       key: str,
       module: str,
       copy_keys: typing.List[str] = [],
       unique_keys: typing.List[str] = []) -> None:
+  """
+  Export node_data from groups to topology
 
+  Used to create module-specific data structures in pre_transform hook before the
+  node data is populated from groups.node_data
+
+  Inputs:
+  * data structure name ('vrfs' or 'vlans')
+  * module name ('vrf' or 'vlan') -- used in error messages
+  * copy_keys: attributes that should be copied to topology-level data structure
+  * unique_keys: attributes that must be unique (set to copy_keys when empty)
+  """
   if not unique_keys:
     unique_keys = copy_keys
   for gname,gdata in topology.groups.items():
@@ -615,11 +630,13 @@ def export_group_node_data(
           if attr in obj_data and attr not in topology[key][obj_name]:
             topology[key][obj_name][attr] = obj_data[attr]
 
-#
-# create_bgp_autogroups -- create BGP AS groups
-#
 
 def create_bgp_autogroups(topology: Box) -> None:
+  """
+  Builds automatic topology groups for BGP autonomous systems. 
+  Scans BGP-enabled nodes, determines each node’s AS number and converts ASDOT values when needed
+  Adds the node to the matching AS group.
+  """
   g_module = topology.get('module',[])                          # Global list of modules, could be invalid
   if not isinstance(g_module,list):                             # Won't deal with incorrectly formatted 'module' attribute here
     g_module = []                                               # ... just assume it's an empty list
@@ -635,10 +652,10 @@ def create_bgp_autogroups(topology: Box) -> None:
           'groups')
 
   for n_name,n_data in topology.nodes.items():                  # Now iterate over nodes
-    #
-    # Get node or global module (global modules haven't been propagated yet) taking into account
-    # whether the global modules will be propagated into the node
-    #
+    """
+    Get node or global module (global modules haven't been propagated yet) taking into account
+    whether the global modules will be propagated into the node
+    """
     g_propagate = propagate_global_modules(n_data,topology)
     n_module = n_data.get('module',g_module if g_propagate else [])
     if not isinstance(n_module,list):                           # Node list of modules is insane, someone else will complain
@@ -674,17 +691,15 @@ def create_bgp_autogroups(topology: Box) -> None:
   if err_list:
     log.exit_on_error()
 
-"""
-precheck_groups:
-
-* Check the baseline group data structure sanity
-* Auto-creates group members
-
-This function is called very early in the transformation process. Be very
-careful when touching other data structures and don't trust anything. Most
-of the topology data hasn't been validated yet.
-"""
 def precheck_groups(topology: Box) -> None:
+  """
+  * Check the baseline group data structure sanity
+  * Auto-creates group members
+
+  This function is called very early in the transformation process. Be very
+  careful when touching other data structures and don't trust anything. Most
+  of the topology data hasn't been validated yet.
+  """
   auto_create_default = \
     topology.get('defaults.groups._auto_create',False) or \
     topology.get('groups._auto_create',False)     # auto-create could be set in defaults or on groups
@@ -697,18 +712,15 @@ def precheck_groups(topology: Box) -> None:
     if check_group_data_sanity(topology,'defaults'):
       auto_create_members(topology.defaults,topology,False)
 
-"""
-init_groups:
-
-* Check and adjust group data structures
-* Check recursive groups
-* Add nodes to groups based on node 'group' attribute
-
-Please note that check_group_data_structure creates 'groups' element if needed
-and 'adjust_groups' deletes it if there are no groups in the topology.
-"""
-
 def init_groups(topology: Box) -> None:
+  """
+  * Check and adjust group data structures
+  * Check recursive groups
+  * Add nodes to groups based on node 'group' attribute
+
+  Please note that check_group_data_structure creates 'groups' element if needed
+  and 'adjust_groups' deletes it if there are no groups in the topology.
+  """
   if 'groups' in topology:
     check_group_data_structure(topology)
 
@@ -730,11 +742,17 @@ def init_groups(topology: Box) -> None:
   log.exit_on_error()
 
 def validate_groups(topology: Box) -> None:
+  """
+  Validate groups.
+  """
   validate_group_data(topology)
   validate_group_data(topology,'defaults')
   log.exit_on_error()
 
 def copy_group_data(topology: Box) -> None:
+  """
+  Copy group data
+  """
   copy_group_device_module(topology)
   copy_group_node_data(topology,'')                 # Copy all group data into nodes (potentially setting bgp.as)
   bgp.process_as_list(topology)
@@ -744,14 +762,14 @@ def copy_group_data(topology: Box) -> None:
   if not topology.groups:
     del topology['groups']
 
-'''
-Copy custom config templates from groups into nodes
-'''
 def node_config_templates(topology: Box) -> None:
+  """
+  Copy custom config templates from groups into nodes
+  """
   if not 'groups' in topology:
     return
 
-  '''
+  """
   Phase 1 - merge group config templates into nodes
 
   Traverse groups from more-specific to less specific, pushing config templates in front of
@@ -759,7 +777,7 @@ def node_config_templates(topology: Box) -> None:
 
   End result: config templates sorted from less specific through more specific groups, ending
   with node templates.
-  '''
+  """
 
   for group_name in reverse_topsort(topology):              # Iterate over all groups
     gdata = topology.groups[group_name]
@@ -779,12 +797,12 @@ def node_config_templates(topology: Box) -> None:
         if not must_be_list(ndata,'config',f'nodes.{name}') is None:
           ndata.config = topology.groups[group_name].config + ndata.config
 
-  '''
+  """
   Phase 2 - cleanup
 
   * Remove 'config' attributes from groups (just in case, they are no longer needed anyway)
   * Process node 'config' attributes to honor 'removal of prior templates' requests
-  '''
+  """
 
   for group_name in topology.groups:
     if group_name.startswith('_'):                # Skip settings
@@ -810,12 +828,12 @@ def node_config_templates(topology: Box) -> None:
     else:
       node.pop('config',None)
 
-"""
-Final step in group processing: remove settings from groups data structure,
-so the templates don't have to guess whether they're dealing with groups
-or settings
-"""
 def cleanup(topology: Box) -> None:
+  """
+  Final step in group processing: remove settings from groups data structure,
+  so the templates don't have to guess whether they're dealing with groups
+  or settings
+  """
   if not 'groups' in topology:                    # No groups, no worries
     return
 

@@ -1,11 +1,11 @@
-'''
+"""
 Topology-level transformation:
 
 * Check for required elements (nodes, defaults)
 * Check for extraneous elements
 * Adjust 'provider' parameter
 * Create expanded topology file in YAML format (mostly for troubleshooting purposes)
-'''
+"""
 
 import os
 
@@ -15,31 +15,32 @@ from ..data.types import must_be_list, must_be_string
 from ..data.validate import get_object_attributes, validate_attributes
 from ..utils import log, strings
 
-"""
-Generate topology name from the lab topology file location:
 
-* Take the first entry in the 'input' list (the original topology name)
-* Expand it to full path, then take the rightmost directory name from the path
-* Make an ID out of the directory name (removing everything but ASCII letters
-  and numbers)
-* Remove underscores from ID (see #2424)
-* If nothing is left, assume the topology name is 'default'
-"""
 def name_from_path(topology: Box) -> str:
+  """
+  Generate topology name from the lab topology file location:
+
+  * Take the first entry in the 'input' list (the original topology name)
+  * Expand it to full path, then take the rightmost directory name from the path
+  * Make an ID out of the directory name (removing everything but ASCII letters
+    and numbers)
+  * Remove underscores from ID (see #2424)
+  * If nothing is left, assume the topology name is 'default'
+  """
   topo_name = os.path.basename(os.path.dirname(os.path.realpath(topology['input'][0])))
   topo_name = strings.make_id(topo_name).replace('_','')
   if not topo_name:
     topo_name = 'default'
   return topo_name
 
-"""
-Basic topology sanity check:
-
-* It should have a name (set one from lab topology directory if needed) that
-  should be a string
-* The 'module' attribute (if present) must be a list
-"""
 def topology_sanity_check(topology: Box) -> None:
+  """
+  Basic topology sanity check:
+
+  * It should have a name (set one from lab topology directory if needed) that
+    should be a string
+  * The 'module' attribute (if present) must be a list
+  """
   if not 'name' in topology:
     topology.name = name_from_path(topology)[:12]
 
@@ -50,10 +51,10 @@ def topology_sanity_check(topology: Box) -> None:
   if must_be_string(topology,'name','',module='topology'):
     topology.defaults.name = topology.name
 
-"""
-Check required topology elements (currently: nodes)
-"""
 def check_required_elements(topology: Box) -> None:
+  """
+  Check required topology elements (currently: nodes)
+  """
   invalid_topo = False
   for rq in ['nodes']:
     if not topology.get(rq):
@@ -64,7 +65,9 @@ def check_required_elements(topology: Box) -> None:
     log.fatal("Fatal topology errors, aborting")
 
 def check_global_elements(topology: Box) -> None:
-  # Allow provider-specific global attributes
+  """
+  Allow provider-specific global attributes
+  """
   providers = get_object_attributes(topology.defaults.attributes.global_extra_ns,topology)
 
   validate_attributes(
@@ -77,13 +80,13 @@ def check_global_elements(topology: Box) -> None:
     module='topology',                              # Function is called from 'nodes' module
     extra_attributes = providers)                   # Allow provider-specific settings (not checked at the moment)
 
-#
-# Find virtualization provider, set provider and defaults.provider to that value
-#
-# Note: defaults.provider is needed in some output routines that get defaults data structure
-# but not the whole topology
-#
 def adjust_global_parameters(topology: Box) -> None:
+  """
+  Find virtualization provider, set `provider` and `defaults.provider` to that value
+
+  Note: `defaults.provider` is needed in some output routines that get defaults data structure
+  but not the whole topology
+  """
   if not 'provider' in topology:
     topology.provider = topology.defaults.provider
   else:
@@ -112,11 +115,10 @@ def adjust_global_parameters(topology: Box) -> None:
     if k in topology.defaults.providers[topology.provider]:
       topology.defaults[k] = topology.defaults[k] + topology.defaults.providers[topology.provider][k]
 
-#
-# Cleanup the topology
-#
-
 def cleanup_topology(topology: Box) -> Box:
+  """
+  Cleanup topology, remove prefix generators
+  """
   topo_copy = Box(topology,box_dots=True)
 
   # Remove PFX generators from addressing section

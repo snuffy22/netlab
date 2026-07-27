@@ -1,3 +1,7 @@
+"""
+Validation-test data normalization and device support calculation helpers.
+"""
+
 #
 # Process validation data structures
 #
@@ -8,10 +12,11 @@ from box import Box
 from ..data.global_vars import get_const
 from ..utils import log
 
-'''
-lookup_wait_time: convert wait time to integer
-'''
+
 def lookup_wait_time(v_entry: Box, topology: Box) -> None:
+  """
+  Convert wait time to integer
+  """
   if not 'wait' in v_entry:
     return
 
@@ -42,15 +47,15 @@ def lookup_wait_time(v_entry: Box, topology: Box) -> None:
       category=log.IncorrectValue,
       module='validation')
 
-'''
-validate_test_entry: Check if the test makes sense
-
-* Every test should have 'wait', 'show', or 'exec' option
-* Tests with 'show' option should have 'valid' option
-* Tests with 'valid' option should have 'show' or 'exec' option
-'''
 
 def validate_test_entry(v_entry: Box, topology: Box) -> bool:
+  """
+  Check if the test makes sense
+
+  * Every test should have 'wait', 'show', or 'exec' option
+  * Tests with 'show' option should have 'valid' option
+  * Tests with 'valid' option should have 'show' or 'exec' option
+  """
   kw_set = set(v_entry.keys())
   action_set = set(['show','exec','config','wait','plugin','suzieq','ansible'])
   if not kw_set & action_set:                           # Test should have at least one of show/exec/wait
@@ -109,15 +114,15 @@ def validate_test_entry(v_entry: Box, topology: Box) -> bool:
 
   return True
 
-'''
-calculate_device_support: Figure out which devices are supported by the current validation test
-
-If the validation entry includes 'devices' we're good to go -- hopefully the topology creator
-knows what he's doing. Otherwise, we'll take a union of devices mentioned in 'show' and 'exec'
-entries and do an intersectiion with the 'valid' entry
-'''
 
 def calculate_device_support(v_entry: Box, topology: Box) -> bool:
+  """
+  Figure out which devices are supported by the current validation test
+
+  If the validation entry includes 'devices' we're good to go -- hopefully the topology creator
+  knows what he's doing. Otherwise, we'll take a union of devices mentioned in 'show' and 'exec'
+  entries and do an intersectiion with the 'valid' entry
+  """
   if 'show' not in v_entry and 'exec' not in v_entry:
     return True
 
@@ -146,15 +151,15 @@ def calculate_device_support(v_entry: Box, topology: Box) -> bool:
   
   return True
 
-'''
-Process validation data structure
-
-Lab validation is specified as a dictionary of entries that have to be executed
-in the specified order. As the generation of YAML snapshot file (where 'netlab validate'
-gets its data) reorders the dictionary keys, we turn the dictionary into a list as
-the last step in the lab validation data processing.
-'''
 def process_validation(topology: Box) -> None:
+  """
+  Process validation data structure
+
+  Lab validation is specified as a dictionary of entries that have to be executed
+  in the specified order. As the generation of YAML snapshot file (where 'netlab validate'
+  gets its data) reorders the dictionary keys, we turn the dictionary into a list as
+  the last step in the lab validation data processing.
+  """
   if 'validate' not in topology:                            # No lab validation, nothing to do ;)
     return
 

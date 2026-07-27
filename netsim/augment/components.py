@@ -1,9 +1,9 @@
-'''
+"""
 This module handles topology components
 
 * Performs initial check of the components
 * Expands included components into groups, nodes and links
-'''
+"""
 
 
 from box import Box
@@ -14,15 +14,16 @@ from ..data.types import must_be_dict, must_be_id, must_be_string
 from ..utils import log
 from . import links, nodes
 
-'''
-Validate topology components:
 
-* Component name must be an identifier
-* Component must be a dictionary
-* nodes element must be a valid node specification
-* links element must be a valid link list
-'''
 def validate_components(topology: Box) -> None:
+  """
+  Validate topology components:
+
+  * Component name must be an identifier
+  * Component must be a dictionary
+  * nodes element must be a valid node specification
+  * links element must be a valid link list
+  """
   for cname in topology.components.keys():
     must_be_id(
       parent=None,
@@ -42,14 +43,13 @@ def validate_components(topology: Box) -> None:
     if 'links' in cdata:
       cdata.links = links.adjust_link_list(cdata.links,cdata.nodes,linkname_format=f'components.{cname}.links[{{link_cnt}}]')
 
-'''
-validate_include -- validate an include request
-
-* Include value must be a string
-* Include value must be a valid component name
-'''
-
 def validate_include(n_name: str, n_data: Box, topology: Box) -> bool:
+  """
+  Validate an include request
+
+  * Include value must be a string
+  * Include value must be a valid component name
+  """
   try:
     must_be_string(
       parent=n_data,
@@ -67,25 +67,20 @@ def validate_include(n_name: str, n_data: Box, topology: Box) -> bool:
   
   return True
 
-'''
-include_nodes -- include nodes from a component into the topology
+def include_nodes(n_name: str, c_data: Box, topology: Box) -> None:
+  """
+  Include nodes from a component into the topology
 
-Inputs:
+  Iterate over all nodes in the component:
 
-* n_name: name of the node that includes the component
-* c_data: component data
-* topology: global lab topology
+  * Final node name is a combination of the include name and the component name
+  * If the node name already exists in the topology, report an error and skip it
+  * If the node is a nested include, validate it and recursively expand it.
 
-Iterate over all nodes in the component:
-
-* Final node name is a combination of the include name and the component name
-* If the node name already exists in the topology, report an error and skip it
-* If the node is a nested include, validate it and recursively expand it.
   Otherwise, copy node data (to preserve the component) and add it to the topology
 
-Also: check that the total number of nodes does not exceed the maximum allowed
-'''
-def include_nodes(n_name: str, c_data: Box, topology: Box) -> None:
+  Also: check that the total number of nodes does not exceed the maximum allowed
+  """
   MAX_NODE_ID = global_vars.get_const('MAX_NODE_ID',150)
 
   for inc_name,inc_data in c_data.nodes.items():
@@ -116,6 +111,9 @@ def include_nodes(n_name: str, c_data: Box, topology: Box) -> None:
           header=True)
 
 def include_links(n_name: str, c_data: Box, topology: Box) -> None:
+  """
+  Expand component link definitions into the global topology.
+  """
   for l_data in c_data.links:
     inc_link = data.get_box(l_data)                         # Create a copy of the link data structure
     inc_link._linkname = f'{n_name}_{inc_link._linkname}'   # ... fill in linkname
@@ -126,6 +124,9 @@ def include_links(n_name: str, c_data: Box, topology: Box) -> None:
     topology.links.append(inc_link)                         # Ready to add the new link to the global link list
 
 def create_included_group(n_name: str, n_data: Box, c_data: Box, topology: Box) -> None:
+  """
+  Create the synthetic group representing one component instance.
+  """
   g_name = f'inc_{n_name}'
   if g_name in topology.groups:
     log.error(
@@ -151,6 +152,9 @@ def create_included_group(n_name: str, n_data: Box, c_data: Box, topology: Box) 
       topology.groups[g_name][k] = v
 
 def expand_include(n_name: str, n_data: Box, topology: Box) -> None:
+  """
+  Expand a single component include request.
+  """
   c_name = n_data.include
   c_data = topology.components[c_name]
 
@@ -160,15 +164,15 @@ def expand_include(n_name: str, n_data: Box, topology: Box) -> None:
     include_links(n_name,c_data,topology)
   create_included_group(n_name,n_data,c_data,topology)
 
-'''
-We don't know the final node names When creating the link data structures,
-so we can do a viability check, but cannot check the actual node names
-for links involving nodes within components.
-
-Once the components are expanded, the node names are final, and we can
-do the final check.
-'''
 def validate_link_nodenames(topology: Box) -> None:
+  """
+  We don't know the final node names when creating the link data structures,
+  so we can do a viability check, but cannot check the actual node names
+  for links involving nodes within components.
+
+  Once the components are expanded, the node names are final, and we can
+  do the final check.
+  """
   for link in topology.get('links',[]):
     for intf in link.get('interfaces',[]):
       if intf.node not in topology.nodes:
@@ -177,14 +181,14 @@ def validate_link_nodenames(topology: Box) -> None:
           category=log.IncorrectValue,
           module='links')
 
-'''
-Expand included components into groups, nodes and links
-
-* Validate components and exit on error
-* For each included component (node with include attribute) expand it into
-  groups, nodes and links
-'''
 def expand_components(topology: Box) -> None:
+  """
+  Expand included components into groups, nodes and links
+
+  * Validate components and exit on error
+  * For each included component (node with include attribute) expand it into
+    groups, nodes and links
+  """
   if not 'components' in topology:
     return
 
