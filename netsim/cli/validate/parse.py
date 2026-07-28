@@ -11,10 +11,10 @@ from ...utils import log
 from .. import parser_add_debug, parser_add_verbose, parser_lab_location
 
 
-#
-# CLI parser for 'netlab validate' command
-#
 def validate_parse(args: typing.List[str]) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab validate' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab validate",
     description='Run lab validation tests specified in the lab topology')
@@ -60,10 +60,10 @@ def validate_parse(args: typing.List[str]) -> argparse.Namespace:
 
   return parser.parse_args(args)
 
-'''
-filter_by_test: select only tests specified in arguments
-'''
 def filter_by_tests(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Select only tests specified in arguments
+  """
   if not args.tests:
     return
   tests_to_execute = {}
@@ -81,10 +81,10 @@ def filter_by_tests(args: argparse.Namespace, topology: Box) -> None:
 
   topology.validate = tests_to_execute.values()
 
-'''
-filter_by_nodes: select only tests executed on specified node
-'''
 def filter_by_nodes(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Select only tests executed on specified node
+  """
   if not args.nodes:
     return
 

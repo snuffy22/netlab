@@ -17,10 +17,10 @@ from ...utils import log, strings
 from .. import ansible, error_and_exit, external_commands, get_message, is_dry_run, lab_status_change
 from . import configs, ready, utils
 
-"""
-get_normalize_list -- get a list of all nodes that require normalization step
-"""
 def get_normalize_list(topology: Box, nodeset: list) -> list:
+  """
+  Get a list of all nodes that require normalization step
+  """
   normalize_list = []
   defaults = topology.defaults
   for nname,ndata in topology.nodes.items():
@@ -59,12 +59,12 @@ def deploy_provider_config(nodeset: list, topology: Box, args: argparse.Namespac
 
   return (Used, OK)
 
-"""
-Print the results of the internal script deployments. Has to be called
-after the Ansible playbook has completed, or it would be buried deep
-into that noise.
-"""
 def print_internal_stats(topology: Box, top_margin: bool = False) -> None:
+  """
+  Print the results of the internal script deployments. Has to be called
+  after the Ansible playbook has completed, or it would be buried deep
+  into that noise.
+  """
   print_legend = True
   max_name_len = max([len(n_name) for n_name in topology.nodes ] + [ 16 ]) + 1
   for n_name, n_data in topology.nodes.items():

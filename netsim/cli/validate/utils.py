@@ -10,20 +10,20 @@ from box import Box, BoxList
 from ...utils import log, templates
 from . import plugin, report
 
-'''
-Get generic or per-device action from a validation entry
-
-* If the validation entry is a string, use that
-* If the validation entry is a dictionary, use device-specific item
-* If the result of the above is not a string we have a failure, get out
-* If the resulting string contains '{{' run it through Jinja2 engine
-
-If we try to get the string to pass to the device from a plugin, then any
-plugin evaluation errors indicate something is badly broken, so we log the
-error with as much data as feasible... and if the end-user ever sees that
-error message, the author of the validation plugin did a lousy job.
-'''
 def get_entry_value(v_entry: Box, action: str, node: Box, topology: Box) -> typing.Any:
+  """
+  Get generic or per-device action from a validation entry
+
+  * If the validation entry is a string, use that
+  * If the validation entry is a dictionary, use device-specific item
+  * If the result of the above is not a string we have a failure, get out
+  * If the resulting string contains '{{' run it through Jinja2 engine
+
+  If we try to get the string to pass to the device from a plugin, then any
+  plugin evaluation errors indicate something is badly broken, so we log the
+  error with as much data as feasible... and if the end-user ever sees that
+  error message, the author of the validation plugin did a lousy job.
+  """
   n_device = node.device
   if action in v_entry:
     value = v_entry[action][n_device] if isinstance(v_entry[action],dict) else v_entry[action]
@@ -54,12 +54,12 @@ def get_entry_value(v_entry: Box, action: str, node: Box, topology: Box) -> typi
 
   return value  
 
-'''
+"""
 Get the command to execute on the device in list format
 
 * Use 'get_entry_value' to get the action string or list
 * If we got a string, transform it into a list
-'''
+"""
 def get_exec_list(v_entry: Box, action: str, node: Box, topology: Box) -> list:
   v_cmd = get_entry_value(v_entry,action,node,topology)
   if isinstance(v_cmd,list):
@@ -69,7 +69,7 @@ def get_exec_list(v_entry: Box, action: str, node: Box, topology: Box) -> list:
 
   return []
 
-'''
+"""
 find_test_action -- find something that can be executed on current node
 
 * Try 'show' and 'exec' actions
@@ -80,7 +80,7 @@ find_test_action -- find something that can be executed on current node
 * If there's no relevant 'show' or 'exec' action, try the plugin
 * If there's no plugin, but we have 'wait' action, return 'wait'
 * If everything fails, return None (nothing usable for the current node)
-'''
+"""
 def find_test_action(v_entry: Box, node: Box) -> typing.Optional[str]:
   action_kw_found = False
   for kw in ('show','exec','config','suzieq','ansible'):
@@ -101,20 +101,20 @@ def find_test_action(v_entry: Box, node: Box) -> typing.Optional[str]:
 
   return None
 
-'''
-Try to parse the results returned from a lab device as a JSON
-
-* Cleanup the returned text
-* If the cleaned-up text starts with [ we have a list: create a bogus
-  wrapper JSON, parse it, and return the inside list
-* Otherwise, try to parse the returned text as JSON object
-
-Cleanup part:
-* Remove the leading and trailing whitespace
-* Find the first [ or { and skip everything in front of it (might be
-  an error message mixed with the JSON data)
-'''
 def parse_JSON(result: str) -> typing.Union[Box,Exception]:
+  """
+  Try to parse the results returned from a lab device as a JSON
+
+  * Cleanup the returned text
+  * If the cleaned-up text starts with [ we have a list: create a bogus
+    wrapper JSON, parse it, and return the inside list
+  * Otherwise, try to parse the returned text as JSON object
+
+  Cleanup part:
+  * Remove the leading and trailing whitespace
+  * Find the first [ or { and skip everything in front of it (might be
+    an error message mixed with the JSON data)
+  """
   result = result.strip()
   low_idx = len(result)
   for s_char in ('[','{'):
@@ -134,22 +134,6 @@ def parse_JSON(result: str) -> typing.Union[Box,Exception]:
   except Exception as ex:
     return ex
 
-"""
-execute_validation_expression: execute the v_entry.valid string in a safe environment with
-error/success logging.
-
-Getting the results:
-
-* There is no 'valid' entry: bad, log an error, increase skip count
-* Validation expression fails: bad, assume result is False
-* Otherwise, the validation function should return True (or some such), False or None
-
-Evaluating the results:
-
-* False: print failure message, increase result count but not pass count
-* True: print success message, increase result and pass count
-* None: we have no idea what the answer is, skip this test
-"""
 
 BUILTINS: dict = {                            # Allowed built-in functions. Extend as needed ;)
   'len': len
@@ -163,7 +147,21 @@ def execute_validation_expression(
       verbosity: int,
       report_error: bool,
       report_success: bool = True) -> typing.Optional[bool]:
+  """
+  Execute the v_entry.valid string in a safe environment with error/success logging.
 
+  Getting the results:
+
+  * There is no 'valid' entry: bad, log an error, increase skip count
+  * Validation expression fails: bad, assume result is False
+  * Otherwise, the validation function should return True (or some such), False or None
+
+  Evaluating the results:
+
+  * False: print failure message, increase result count but not pass count
+  * True: print success message, increase result and pass count
+  * None: we have no idea what the answer is, skip this test
+  """
   global BUILTINS
   from . import TEST_COUNT
 

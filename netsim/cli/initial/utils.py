@@ -16,10 +16,10 @@ from ...utils import log, strings
 from .. import _nodeset, common_parse_args, parser_lab_location
 
 
-#
-# CLI parser for 'netlab initial' command
-#
 def initial_config_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+  """
+  CLI parser for 'netlab initial' command
+  """
   parser = argparse.ArgumentParser(
     parents=[ common_parse_args() ],
     prog="netlab initial",
@@ -100,10 +100,10 @@ def common_ansible_args() -> list:
 
   return rest
 
-"""
-Build Ansible arguments based on 'netlab initial' parameters
-"""
 def min_ansible_args(args: argparse.Namespace) -> list:
+  """
+  Build Ansible arguments based on 'netlab initial' parameters
+  """
   rest = common_ansible_args()
   if args.limit:
     rest = ['--limit',args.limit] + rest
@@ -131,10 +131,10 @@ def ansible_args(args: argparse.Namespace) -> list:
 
   return rest
 
-"""
-Get the list of modules deployed
-"""
 def get_deploy_parts(args: argparse.Namespace) -> list:
+  """
+  Get the list of modules deployed
+  """
   deploy_parts = []
   if args.initial:
     deploy_parts.append("initial configuration")
@@ -150,17 +150,16 @@ def get_deploy_parts(args: argparse.Namespace) -> list:
 
   return deploy_parts
 
-"""
-Do we need to deploy/create all node configuration snippets?
-"""
 def deploy_all_configs(args: argparse.Namespace) -> bool:
+  """
+  Do we need to deploy/create all node configuration snippets?
+  """
   return not args.module and not args.initial and not args.custom
 
-"""
-node_deploy_list -- Figure out what needs to be deployed on the node
-based on CLI arguments
-"""
 def node_deploy_list(node: Box, args: argparse.Namespace) -> list:
+  """
+  Figure out what needs to be deployed on the node based on CLI arguments
+  """
   all_config = deploy_all_configs(args)
 
   node_configs = []
@@ -186,11 +185,10 @@ def node_deploy_list(node: Box, args: argparse.Namespace) -> list:
 
   return node_configs
 
-"""
-node_requires_ansible: Figure out whether the node needs deployment through
-an Ansible playbook based on what the user wants configured
-"""
 def node_requires_ansible(node: Box, args: argparse.Namespace) -> bool:
+  """
+  Figure out whether the node needs deployment through an Ansible playbook based on what the user wants configured
+  """
   if args.generate in ['compare','internal']:
     return False
 
@@ -198,11 +196,10 @@ def node_requires_ansible(node: Box, args: argparse.Namespace) -> bool:
   n_skip   = node.get('netlab_ansible_skip_module',[])
   return bool(set(n_deploy) - set(n_skip))
 
-"""
-nodeset_ansible_skip: return the list of nodes in the nodeset that do not
-need Ansible deployment
-"""
 def nodeset_ansible_skip(nodeset: list, topology: Box, args: argparse.Namespace) -> list:
+  """
+  Return the list of nodes in the nodeset that do not need Ansible deployment
+  """
   skip_list = []
   for n_name in nodeset:
     n_data = topology.nodes.get(n_name,{})
@@ -211,10 +208,10 @@ def nodeset_ansible_skip(nodeset: list, topology: Box, args: argparse.Namespace)
 
   return skip_list
 
-"""
-Filter unmanaged nodes and nodes in the unprovisioned group from the nodeset
-"""
 def filter_unprovisioned(nodeset: typing.List[str], topology: Box) -> typing.List[str]:
+  """
+  Filter unmanaged nodes and nodes in the unprovisioned group from the nodeset
+  """
   nodeset = [node for node in nodeset
                     if not topology.nodes[node].get('unmanaged',False)]
   if 'unprovisioned' not in topology.groups:
@@ -223,18 +220,17 @@ def filter_unprovisioned(nodeset: typing.List[str], topology: Box) -> typing.Lis
   unprovisioned_members = groups.group_members(topology, 'unprovisioned')
   return [node for node in nodeset if node not in unprovisioned_members]
 
-"""
-Get deployment nodeset from args.limit
-"""
 def get_deploy_nodeset(args: argparse.Namespace, topology: Box) -> list:
+  """
+  Get deployment nodeset from args.limit
+  """
   nodeset = _nodeset.parse_nodeset(args.limit, topology) if args.limit else list(topology.nodes.keys())
   return filter_unprovisioned(nodeset, topology)
 
-"""
-ansible_skip_group: Modify Ansible inventory to include _grp_config_skip listing all the
-hosts that do not need Ansible deployment
-"""
 def ansible_skip_group(skip_list: list) -> None:
+  """
+  Modify Ansible inventory to include _grp_config_skip listing all the hosts that do not need Ansible deployment
+  """
   if log.VERBOSE and skip_list:
     log.info('Adjusting unprovisioned group in Ansible inventory')
   try:

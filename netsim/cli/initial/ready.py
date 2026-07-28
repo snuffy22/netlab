@@ -15,10 +15,11 @@ from ...utils import log, strings
 from .. import ansible, error_and_exit, external_commands, is_dry_run, lab_status_change
 from . import utils
 
-"""
-Prepare for SSH readiness check -- copy timeouts and retry counters, check for "sshpass", set up the SSH command
-"""
 def setup_ssh_ready_parameters(nodeset: list, topology: Box) -> None:
+  """
+  Prepare for SSH readiness check, copy timeouts and retry counters, check for "sshpass"
+  and set up the SSH command
+  """
 
   # Get a group variable (if it's an int) or a default
   #
@@ -155,11 +156,11 @@ def device_ssh_ready(waitset: list, topology: Box) -> None:
 
 READY_ACTIONS = { 'ssh': device_ssh_ready }
 
-"""
-Execute all "wait for device to be ready" steps recognized by "netlab initial". Further
-steps might have to be executed by Ansible playbooks
-"""
 def internal_device_ready(waitlists: Box, topology: Box) -> Box:
+  """
+  Execute all "wait for device to be ready" steps recognized by "netlab initial". Further
+  steps might have to be executed by Ansible playbooks
+  """
   global READY_ACTIONS
 
   # Iterate over known steps, check whether any device needs that, and execute

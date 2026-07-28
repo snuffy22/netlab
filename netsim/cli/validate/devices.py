@@ -14,10 +14,10 @@ from .. import external_commands
 from ..connect import LogLevel, connect_to_node
 from . import report, utils
 
-'''
-Execute a 'show' command. The return value is expected to be parseable JSON
-'''
 def get_parsed_result(v_entry: Box, n_name: str, topology: Box, verbosity: int) -> Box:
+  """
+  Execute a 'show' command. The return value is expected to be parseable JSON
+  """
   node = topology.nodes[n_name]                             # Get the node data
   v_cmd = utils.get_exec_list(v_entry,'show',node,topology) # ... and the 'show' action for the current node
   err_value = data.get_box({'_error': True})                # Assume an error
@@ -63,15 +63,14 @@ def get_parsed_result(v_entry: Box, n_name: str, topology: Box, verbosity: int) 
 
   return j_result
 
-'''
-Execute a command on the device and return stdout
-'''
 def get_result_string(
       v_entry: Box,
       n_name: str,
       topology: Box,
       report_error: bool = True) -> typing.Union[bool,int,str]:
-
+  """
+  Execute a command on the device and return stdout
+  """
   node = topology.nodes[n_name]                             # Get the node data
   v_cmd = utils.get_exec_list(v_entry,'exec',node,topology) # ... and the 'exec' action for the current node
   if not v_cmd:                                             # We should not get here, but we could...
@@ -95,15 +94,15 @@ def get_result_string(
 
   return result
 
-'''
-Execute device configuration requests via 'netlab config'
-
-The validation entry has:
-
-* 'config' attribute that is passed to 'netlab config'
-* 'nodes' list that is used to build the '--limit' argument 
-'''
 def execute_netlab_config(v_entry: Box, topology: Box) -> bool:
+  """
+  Execute device configuration requests via 'netlab config'
+
+  The validation entry has:
+
+  * 'config' attribute that is passed to 'netlab config'
+  * 'nodes' list that is used to build the '--limit' argument 
+  """
   node_str = ",".join(v_entry.nodes)
   cmd = f'netlab config {v_entry.config.template} --limit {node_str}'.split(' ')
   v_dump = []

@@ -8,10 +8,10 @@ from box import Box
 
 from ...utils import strings
 
-'''
-increase_fail_count, increase_pass_count: Increase the counters based on test severity level
-'''
 def increase_fail_count(v_entry: Box) -> None:
+  """
+  Increase the fail count based on test severity level
+  """
   from . import TEST_COUNT
   TEST_COUNT.count += 1
   if v_entry.get('level',None) == 'warning':
@@ -20,23 +20,29 @@ def increase_fail_count(v_entry: Box) -> None:
     TEST_COUNT.failed += 1
 
 def increase_pass_count(v_entry: Box) -> None:
+  """
+  Increase the pass count based on test severity level
+  """
   from . import TEST_COUNT
   TEST_COUNT.count += 1
   TEST_COUNT.passed += 1
 
-# The following routines print colored test status and offer
-# various levels of abstraction, from "give me a colored text"
-# to "tell the user the lab was a great success"
+"""
+The following routines print colored test status and offer various levels of abstraction,
+from "give me a colored text" to "tell the user the lab was a great success"
+"""
 
-# Prints test status (colored text in fixed width)
-#
 def p_status(txt: str, color: str, topology: Box, stderr: bool = False) -> None:
+  """
+  Prints test status (colored text in fixed width)
+  """
   txt = f'[{txt}]{" " * 80}'[:topology._v_len+3]
   strings.print_colored_text(txt,color,stderr=stderr)
 
-# Print test header
-#
 def p_test_header(v_entry: Box,topology: Box) -> None:
+  """
+  Print test header
+  """
   import netsim.cli.validate as _validate
   h_text = v_entry.get('description','Starting test') + \
            (f' [ node(s): {",".join(v_entry.nodes)} ]' if v_entry.nodes else '')
@@ -48,15 +54,15 @@ def p_test_header(v_entry: Box,topology: Box) -> None:
   p_status(v_entry.name,"bright_cyan",topology)
   print(h_text)
 
-# Print generic "test failed" message
-#
 def log_failure(
       msg: str,
       topology: Box,
       f_status: str = 'FAIL',
       f_color: str = 'bright_red',
       more_data: typing.Optional[str] = None) -> None:
-
+  """
+  Print generic "test failed" message
+  """
   import netsim.cli.validate as _validate
   if _validate.TEST_HEADER:
     print(file=sys.stderr)
@@ -71,9 +77,10 @@ def log_failure(
     p_status('MORE','bright_black',topology,stderr=_validate.ERROR_ONLY)
     print(more_data,file=o_file)
 
-# Print generic "making progress" message
-#
 def log_progress(msg: str, topology: Box, f_status: str = 'PASS') -> None:
+  """
+  Print generic "making progress" message
+  """
   from . import ERROR_ONLY
   if ERROR_ONLY:
     return
@@ -81,9 +88,10 @@ def log_progress(msg: str, topology: Box, f_status: str = 'PASS') -> None:
   p_status(f_status,'light_green',topology)
   print(msg)
 
-# Print generic "ambivalent info" message
-#
 def log_info(msg: str, topology: Box, f_status: str = 'INFO', f_color: str = 'bright_cyan') -> None:
+  """
+  Print generic "ambivalent info" message
+  """
   from . import ERROR_ONLY
   if ERROR_ONLY:
     return
@@ -91,9 +99,10 @@ def log_info(msg: str, topology: Box, f_status: str = 'INFO', f_color: str = 'br
   p_status(f_status,f_color,topology)
   print(msg)
 
-# Print "test failed on node"
-#
 def p_test_fail(n_name: str, v_entry: Box, topology: Box, fail_msg: str = '') -> None:
+  """
+  Print "test failed on node"
+  """
   err = v_entry.get('fail',fail_msg or f'Test failed for node {n_name}')
   if n_name:
     err = f'Node {n_name}: '+err
@@ -103,16 +112,17 @@ def p_test_fail(n_name: str, v_entry: Box, topology: Box, fail_msg: str = '') ->
     f_color = 'bright_yellow' if v_entry.get('_expect_fail',False) else 'bright_red'
     log_failure(err,topology,f_color=f_color)
 
-# Print "test passed"
-#
 def p_test_pass(v_entry: Box, topology: Box) -> None:
+  """
+  Print "test passed"
+  """
   msg = v_entry.get('pass','Test succeeded')
   log_progress(msg,topology)
 
-'''
-test_plural: get "one test" or "x tests"
-'''
 def test_plural(cnt: int) -> str:
+  """
+  Get "one test" or "x tests"
+  """
   return 'one test' if cnt == 1 else f'{cnt} tests'
 
 def report_results(topology: Box) -> None:

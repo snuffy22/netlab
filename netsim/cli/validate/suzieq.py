@@ -10,10 +10,10 @@ from ...utils import log
 from ..connect import LogLevel, connect_to_tool
 from . import report, utils
 
-'''
-get_result: Execute a command on SuzieQ container, return parsed results
-'''
 def get_result(v_entry: Box, n_name: typing.Optional[str], topology: Box, verbosity: int) -> Box:
+  """
+  Execute a command on SuzieQ container, return parsed results
+  """
   if not 'suzieq' in topology.tools:
     log.fatal('SuzieQ tools is not used in this topology, cannot continue the validation process')
 
@@ -55,10 +55,6 @@ def get_result(v_entry: Box, n_name: typing.Optional[str], topology: Box, verbos
   return j_result
 
 
-'''
-Execute validation of SuzieQ results. The only difference with the 'regular' validation is that
-this one has to iterate over the list of records returned by SuzieQ
-'''
 def execute_validation(
       v_entry: Box,
       node: Box,
@@ -66,7 +62,10 @@ def execute_validation(
       result: typing.Union[Box,BoxList],
       verbosity: int,
       report_error: bool) -> typing.Optional[bool]:
-
+  """
+  Execute validation of SuzieQ results. The only difference with the 'regular' validation is that
+  this one has to iterate over the list of records returned by SuzieQ
+  """
   C_OK = None
   if isinstance(result,Box):
     C_OK = utils.execute_validation_expression(v_entry,node,topology,result,verbosity,report_error)

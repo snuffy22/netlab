@@ -50,31 +50,31 @@ def remove_parse(args: typing.List[str], settings: Box) -> argparse.Namespace:
 
   return parser.parse_args(args)
 
-"""
-Generic abort message -- set the correct module and don't try to print topo header
-"""
 def abort(msg: str) -> None:
+  """
+  Generic abort message -- set the correct module and don't try to print topo header
+  """
   print()
   log.fatal(msg,module='libvirt',header=False)
 
-"""
-Run an external command and abort on failure
-"""
 def abort_on_failure(cmd: str) -> None:
+  """
+  Run an external command and abort on failure
+  """
   if not external_commands.run_command(cmd,ignore_errors=True):
     abort(f'The {cmd} command failed, aborting')
 
-"""
-Print all versions of the specified box we found
-"""
 def print_box_versions(args: argparse.Namespace,box_list: list) -> None:
+  """
+  Print all versions of the specified box we found
+  """
   print(f'Vagrant has these box versions for the {args.box} box:\n')
   print("\n".join(box_list))
 
-"""
-Find the Vagrant box the user wants to remove
-"""
 def find_vagrant_box(args: argparse.Namespace) -> None:
+  """
+  Find the Vagrant box the user wants to remove
+  """
   log.section_header('Starting','Trying to find the Vagrant box to remove')
   boxes = external_commands.run_command(
             ['vagrant','box','list'],
@@ -121,10 +121,10 @@ def find_vagrant_box(args: argparse.Namespace) -> None:
   args.version = box_version
   return
 
-"""
-Make user confirm they know what they're doing
-"""
 def box_remove_confirm(args: argparse.Namespace) -> None:
+  """
+  Make user confirm they know what they're doing
+  """
   if args.yes:
     log.info("User confirmed with the --yes CLI flag we can do whatever damage we need. Hooray!")
     return

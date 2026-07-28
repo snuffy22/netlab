@@ -22,10 +22,10 @@ ERROR_ONLY: bool = False
 TEST_HEADER: dict = {}
 TEST_COUNT: Box = get_box({'passed': 0, 'failed': 0, 'warning': 0, 'count': 0, 'skip': 0})
 
-'''
-list_tests: display validation tests defined for the current lab topology
-'''
 def list_tests(topology: Box) -> None:
+  """
+  Display validation tests defined for the current lab topology
+  """
   heading = [ 'Test','Description','Nodes','Devices','Wait' ]
   rows = [
     [ v_entry.name,
@@ -36,10 +36,10 @@ def list_tests(topology: Box) -> None:
     for v_entry in topology.validate ]
   strings.print_table(heading,rows)
 
-'''
-Main routine: run all tests, handle validation errors, print summary results
-'''
 def run(cli_args: typing.List[str]) -> None:
+  """
+  Run all tests, handle validation errors, print summary results
+  """
   global TEST_COUNT,ERROR_ONLY
   args = parse.validate_parse(cli_args)
   if args.error_only:

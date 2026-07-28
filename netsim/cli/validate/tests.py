@@ -14,17 +14,16 @@ from ...augment import devices as _devices
 from ...utils import log
 from . import ansible, devices, plugin, report, suzieq, utils
 
-'''
-extend_first_wait_time: some devices need extra time to start working, even when
-the configuration process has completed. Assuming we can't (or don't want to)
-catch that during the device readiness check, we should add extra delay to the
-validation process.
-
-This function walks through the lab nodes, checks the features.initial.delay of
-each device, and adds the maximum delay to the first 'wait' parameter.
-'''
 
 def extend_first_wait_time(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Some devices need extra time to start working, even when the configuration process
+  has completed. Assuming we can't (or don't want to) catch that during the device
+  readiness check, we should add extra delay to the validation process.
+
+  This function walks through the lab nodes, checks the features.initial.delay of
+  each device, and adds the maximum delay to the first 'wait' parameter.
+  """
   max_delay = 0
   d_device  = None
   for n_data in topology.nodes.values():

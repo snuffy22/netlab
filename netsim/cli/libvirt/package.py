@@ -56,10 +56,10 @@ def package_parse(args: typing.List[str], settings: Box) -> argparse.Namespace:
 
   return parser.parse_args(args)
 
-"""
-Check for running labs and abort if there's a running lab instance
-"""
 def check_running_labs(topology: Box) -> None:
+  """
+  Check for running labs and abort if there's a running lab instance
+  """
   lab_states = status.read_status(topology)
   if lab_states:
     print('''
@@ -71,10 +71,10 @@ status of your lab instances with "netlab status" and stop them with
 
   return
 
-"""
-Make user confirm they know what they're doing
-"""
 def box_build_confirm(args: argparse.Namespace) -> None:
+  """
+  Make user confirm they know what they're doing
+  """
   if args.yes:
     log.info('Box building confirmed through CLI --yes flag')
     return
@@ -95,10 +95,10 @@ directory.
     print('User decided to abort the box building process')
     return
 
-"""
-Create and destroy the Vagrant management network
-"""
 def start_vagrant_network() -> None:
+  """
+  Create and destroy the Vagrant management network
+  """
   log.section_header('Starting','Create and start the management network')
   create_vagrant_network()
   if not external_commands.run_command(
@@ -123,14 +123,14 @@ def stop_vagrant_network(ignore_errors: bool = False) -> None:
     if not ignore_errors:
       log.error(f"Cannot undefine network {LIBVIRT_MANAGEMENT_NETWORK_NAME}",category=log.FatalError,module='libvirt')
 
-"""
-Cleanup the environment:
-
-* Destroy and undefine the VM
-* Delete and undefine the management network
-* Cleanup the temporary directory
-"""
 def vm_cleanup(vm_name: str, ignore_errors: bool = False) -> None:
+  """
+  Cleanup the environment:
+
+  * Destroy and undefine the VM
+  * Delete and undefine the management network
+  * Cleanup the temporary directory
+  """
   strings.print_colored_text('[CLEANUP] ','green',None)
   print('Destroying and undefining vm_box')
   if not external_commands.run_command(
@@ -154,10 +154,10 @@ def cleanup(workdir: typing.Optional[str] = None) -> None:
     print(f'Removing the build directory {workdir}')
     shutil.rmtree(workdir)
 
-"""
-Create the working directory
-"""
 def create_workdir(workdir: str, args: argparse.Namespace) -> None:
+  """
+  Create the working directory
+  """
   if not args.skip:
     if os.path.exists(workdir):
       strings.print_colored_text('[CLEANUP] ','green',None)
@@ -168,10 +168,10 @@ def create_workdir(workdir: str, args: argparse.Namespace) -> None:
   print(f'Creating the build directory {workdir}')
   pathlib.Path(workdir).mkdir(parents=True,exist_ok=True,mode=0o777)
 
-"""
-Run an external command and abort on failure
-"""
 def abort_on_failure(cmd: str) -> None:
+  """
+  Run an external command and abort on failure
+  """
   if not external_commands.run_command(cmd):
     log.fatal('Aborting')
 
@@ -295,7 +295,7 @@ def invalid_version(err: str) -> typing.Tuple:
 
 def check_version(b: str, v: str) -> typing.Tuple:
   """
-  valid_version: Check the version number
+  Check the version number
   """
   if '/' in v:                                    # Full box name specified by the user
     if ':' not in v:

@@ -15,11 +15,11 @@ from . import report
 _validation_plugins: dict = {}
 PLUGIN_ERROR: dict = {}
 
-'''
-load_plugin: try to load the validation plugin for the specified device
-'''
 
 def load_plugin(device: str) -> typing.Any:
+  """
+  Try to load the validation plugin for the specified device
+  """
   global PLUGIN_ERROR
   topology = global_vars.get_topology()
   if topology is None:                                                # Abort if we can't get a point to the topology
@@ -47,16 +47,16 @@ def load_plugin(device: str) -> typing.Any:
 
   return None
 
-'''
-find_plugin -- find the validation plugin
-
-The plugin could have been already loaded, in which case we'll find it in the global
-_validation_plugin dictionary, or we have to load it, in which case we'll save it in
-the same dictionary for the next lookup.
-
-Please note that even the negative results ('there is no such plugin') are cached.
-'''
 def find_plugin(device: str) -> typing.Any:
+  """
+  Find the validation plugin
+
+  The plugin could have been already loaded, in which case we'll find it in the global
+  _validation_plugin dictionary, or we have to load it, in which case we'll save it in
+  the same dictionary for the next lookup.
+
+  Please note that even the negative results ('there is no such plugin') are cached.
+  """
   global _validation_plugins
   if device in _validation_plugins:
     return _validation_plugins[device]
@@ -65,13 +65,13 @@ def find_plugin(device: str) -> typing.Any:
   _validation_plugins[device] = plugin
   return plugin
 
-'''
-find_plugin_action -- find the action (show/exec) from the plugin
-
-Figure out whether the validation plugin for the device under test provides the
-desired functionality (show_ or exec_ function). If not, the test is skipped.
-'''
 def find_plugin_action(v_entry: Box, node: Box) -> typing.Optional[str]:
+  """
+  Find the action (show/exec) from the plugin
+
+  Figure out whether the validation plugin for the device under test provides the
+  desired functionality (show_ or exec_ function). If not, the test is skipped.
+  """
   global PLUGIN_ERROR
 
   if 'plugin' not in v_entry:
@@ -101,30 +101,30 @@ def find_plugin_action(v_entry: Box, node: Box) -> typing.Optional[str]:
 class PluginEvalError(Exception):     # Exception class used to raise plugin evaluation exceptions
   pass
 
-'''
-Execute the plugin function specified by 'action' variable and 'plugin' v_entry value
-
-The magic part of this function is the preparation step:
-
-* We pretend the device-specific validation plugin is imported into the current context
-  as 'validate_XXX' module
-* We pass a copy of the topology data as locals to the validation function (ensuring all
-  changes made to topology data are discarded)
-* The topology data is augmented with 'node' variable (current node data)
-* The results of the 'exec' or 'show' command (if available) are passed as _result global
-  to the validation plugin
-
-Finally, the validation expression is executed and the exceptions are handled:
-
-* AttributeError exception including 'validate_XXX' in the error text indicates the
-  function we tried to call does not exist, in which case we return None (test skipped)
-* Any other error is re-raised as PluginEvalError exception to signal to the caller
-  that the plugin evaluatino function failed.
-
-Please note that custom exception raised in the plugin functions get re-raised as
-PluginEvalError exceptions, resulting in custom error messages.
-'''
 def exec_plugin_function(action: str, v_entry: Box, node: Box, result: typing.Optional[Box] = None) -> typing.Any:
+  """
+  Execute the plugin function specified by 'action' variable and 'plugin' v_entry value
+
+  The magic part of this function is the preparation step:
+
+  * We pretend the device-specific validation plugin is imported into the current context
+    as 'validate_XXX' module
+  * We pass a copy of the topology data as locals to the validation function (ensuring all
+    changes made to topology data are discarded)
+  * The topology data is augmented with 'node' variable (current node data)
+  * The results of the 'exec' or 'show' command (if available) are passed as _result global
+    to the validation plugin
+
+  Finally, the validation expression is executed and the exceptions are handled:
+
+  * AttributeError exception including 'validate_XXX' in the error text indicates the
+    function we tried to call does not exist, in which case we return None (test skipped)
+  * Any other error is re-raised as PluginEvalError exception to signal to the caller
+    that the plugin evaluatino function failed.
+
+  Please note that custom exception raised in the plugin functions get re-raised as
+  PluginEvalError exceptions, resulting in custom error messages.
+  """
   from . import TEST_COUNT
 
   p_name = f'validate_{node.device}'
@@ -159,16 +159,6 @@ def exec_plugin_function(action: str, v_entry: Box, node: Box, result: typing.Op
   except Exception as ex:
     raise PluginEvalError(str(ex))
 
-"""
-execute_validation_plugin:
-
-* Execute the valid_xxx function in the validation plugin
-* Process the results similarly to the execute_validation_expression function
-
-Exception handling:
-
-* If the 'exec_plugin_function' throws an exception, log the failure and assume the test has failed
-"""
 def execute_validation_plugin(
       v_entry: Box,
       node: Box,
@@ -176,7 +166,14 @@ def execute_validation_plugin(
       result: Box,
       verbosity: int,
       report_error: bool) -> typing.Optional[bool]:
+  """
+  * Execute the valid_xxx function in the validation plugin
+  * Process the results similarly to the execute_validation_expression function
 
+  Exception handling:
+
+  * If the 'exec_plugin_function' throws an exception, log the failure and assume the test has failed
+  """
   try:
     OK = exec_plugin_function('valid',v_entry,node,result)
     if OK is not None and not OK:

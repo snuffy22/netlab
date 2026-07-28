@@ -36,10 +36,6 @@ def cleanup_config_dir(output_path: Path, args: argparse.Namespace) -> None:
   except ValueError:
     log.info(f'Cannot clean a directory outside of the lab directory')
 
-"""
-Create all node configuration files, either those specified in the config_templates
-or in the node 'module' or 'config' lists
-"""
 def create_node_configs(
       topology: Box,
       nodeset: list,
@@ -49,6 +45,10 @@ def create_node_configs(
       node_directory: bool = False,
       default_suffix: typing.Optional[str] = None,
       flatten_output_fname: bool = False) -> None:
+  """
+  Create all node configuration files, either those specified in the config_templates
+  or in the node 'module' or 'config' lists
+  """
   all_configs = utils.deploy_all_configs(args)
   for n_name in nodeset:
     n_data = topology.nodes[n_name]
@@ -129,10 +129,10 @@ def create_node_configs(
       strings.print_colored_text(strings.pad_err_code('CREATED',10),'green')
       print(f"{n_name}: {','.join(created_list)}")
 
-"""
-Do not generate configuration files that are not module- or custom configs
-"""
 def remove_extra_templates(topology: Box, nodeset: list) -> None:
+  """
+  Do not generate configuration files that are not module- or custom configs
+  """
   for n_name in nodeset:
     n_data = topology.nodes[n_name]
     provider = devices.get_provider(n_data,topology.defaults)
@@ -143,14 +143,13 @@ def remove_extra_templates(topology: Box, nodeset: list) -> None:
     n_modules = n_data.get('module',[]) + n_data.get('config',[]) + ['initial']
     n_data[t_cache_key] = [ item for item in n_data[t_cache_key] if item.source in n_modules ]
 
-"""
-Create node configurations. The CLI arguments are in 'args' argument, the original
-directory in 'cwd' variable (needed to ensure the files are created in a directory
-relative to the original cwd)
-"""
 def run(topology: Box, args: argparse.Namespace, cwd: str) -> None:
+  """
+  Create node configurations. The CLI arguments are in 'args' argument, the original
+  directory in 'cwd' variable (needed to ensure the files are created in a directory
+  relative to the original cwd)
+  """
   # Find the subset of nodes we should work on
-  #
   nodeset = _nodeset.parse_nodeset(args.limit,topology) if args.limit else list(topology.nodes.keys())
   nodeset = utils.filter_unprovisioned(nodeset, topology)
   if not nodeset:

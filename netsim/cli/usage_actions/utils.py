@@ -17,10 +17,10 @@ def confirm_parser(parser: argparse.ArgumentParser) -> None:
     action='store_true',
     help='Confirm action with a CLI parameter')
 
-"""
-Stop collecting usage statistics
-"""
 def usage_stop(args: argparse.Namespace) -> None:
+  """
+  Stop collecting usage statistics
+  """
   s_data = stats.read_stats()
   s_disabled = s_data.get('_disabled',False)
   if s_disabled:
@@ -33,10 +33,10 @@ def usage_stop(args: argparse.Namespace) -> None:
   stats.stats_change_data({'_disabled': True})
   log.info('Collecting of usage statistics has been disabled',module='usage')
 
-"""
-Start collecting usage statistics
-"""
 def usage_start(args: argparse.Namespace) -> None:
+  """
+  Start collecting usage statistics
+  """
   s_data = stats.read_stats()
   s_disabled = s_data.get('_disabled',False)
   hints = [
