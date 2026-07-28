@@ -21,14 +21,14 @@ from . import common_parse_args, error_and_exit, lab_status_log, load_topology, 
 from ._hooks import cli_plugin_hooks
 
 
-#
-# CLI parser for create-topology script
-#
 def create_topology_parse(
       args: typing.List[str],
       cmd: str,
       description: str,
       extra_args: typing.Optional[argparse.ArgumentParser]) -> argparse.Namespace:
+  """
+  CLI parser for create-topology script
+  """
   if cmd != 'create':
     epilog = ""
   else:
@@ -66,20 +66,20 @@ def create_topology_parse(
 
   return parser.parse_args(args)
 
-"""
-Fix URLs to YAML files hosted on public Git repositories. Currently, only Github is supported
-"""
 def fix_git_repo_url(url: str) -> str:
+  """
+  Fix URLs to YAML files hosted on public Git repositories. Currently, only Github is supported
+  """
   if 'github.com' in url and '?' not in url:
     return url + '?raw=true'
   
   return url
 
-"""
-Fetch topology from the specified URL, store it in 'downloaded.yml' file in
-current directory, warn if the directory is not empty
-"""
 def http_fetch_content(url: str, args: typing.Union[argparse.Namespace,Box]) -> str:
+  """
+  Fetch topology from the specified URL, store it in 'downloaded.yml' file in
+  current directory, warn if the directory is not empty
+  """
   fname = 'downloaded.yml'
   url = fix_git_repo_url(url)
   try:
@@ -113,18 +113,18 @@ def http_fetch_content(url: str, args: typing.Union[argparse.Namespace,Box]) -> 
 
   return fname
 
-"""
-Reconstruct the value of the output parameter from 'output' list or dict
-
-If the args.output is not a dictionary, the output parameter is returned as-is, otherwise the
-output parameter is modified based on the dictionary value (copied from the topology defaults)
-
-* Box value is used to specify options and output parameters
-* False value means that the user doesn't want this specific output module => return None
-* Otherwise, the non-falsy dictionary value specifies the option(s) for the output module
-"""
 
 def get_output_parameter(pname: str, pset: typing.Union[Box,list]) -> typing.Optional[str]:
+  """
+  Reconstruct the value of the output parameter from 'output' list or dict
+
+  If the args.output is not a dictionary, the output parameter is returned as-is, otherwise the
+  output parameter is modified based on the dictionary value (copied from the topology defaults)
+
+  * Box value is used to specify options and output parameters
+  * False value means that the user doesn't want this specific output module => return None
+  * Otherwise, the non-falsy dictionary value specifies the option(s) for the output module
+  """
   if not isinstance(pset,Box):                    # The output arguments are specified in a list
     return pname                                  # => List item is the final value
 
@@ -145,6 +145,9 @@ def run(cli_args: typing.List[str],
         cli_command: str = 'create',
         cli_describe: str = 'Create provider- and automation configuration files',
         cli_extra_args: typing.Optional[argparse.ArgumentParser] = None ) -> Box:
+  """
+  Start the creation process
+  """
   args = create_topology_parse(cli_args, cli_command, cli_describe, cli_extra_args)
   if not 'output' in args:
     args.output = None

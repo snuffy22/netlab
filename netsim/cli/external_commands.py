@@ -25,10 +25,10 @@ def stringify(cmd : typing.Union[str,list]) -> str:
     return shlex.join(cmd)
   return str(cmd)
 
-"""
-add_netlab_path: Prepend the directory from which the current copy of netlab was ran to the search path
-"""
 def add_netlab_path() -> None:
+  """
+  Prepend the directory from which the current copy of netlab was ran to the search path
+  """
   from . import NETLAB_SCRIPT
 
   netlab_path = os.path.dirname(NETLAB_SCRIPT)
@@ -45,23 +45,23 @@ def add_netlab_path() -> None:
 
   return
 
-"""
-has_command: figures out whether a command is available
-"""
 def has_command(cmd: str) -> bool:
+  """
+  Figures out whether a command is available
+  """
   return bool(run_command(['bash','-c',f'command -v {cmd}'],check_result=True,ignore_errors=True))
 
-"""
-run_command: Execute an external command specified as a string or a list of CLI parameters
-
-Flags:
-* check_result -- return False if the command does not produce any output
-* ignore_errors -- do not print errors to the console
-* return_stdout -- return the command output instead of True/False
-"""
 LOG_COMMANDS: bool = False
 
 def log_command(cmd: typing.Union[str,list], status: str) -> None:
+  """
+  Execute an external command specified as a string or a list of CLI parameters
+
+  Flags:
+  * check_result -- return False if the command does not produce any output
+  * ignore_errors -- do not print errors to the console
+  * return_stdout -- return the command output instead of True/False
+  """
   global LOG_COMMANDS
   if not LOG_COMMANDS:
     return
@@ -237,10 +237,10 @@ def stop_lab(settings: Box, provider: str, command: str = "test", exec_command: 
   if not run_command(exec_command):
     log.fatal(f"{exec_command} failed, aborting...",command)
 
-"""
-Get a runtime-related parameter for a tool
-"""
 def get_tool_runtime_param(tool: str, param: str, verbose: bool, topology: Box) -> typing.Optional[typing.Any]:
+  """
+  Get a runtime-related parameter for a tool
+  """
   tdata = topology.defaults.tools[tool] + topology.tools[tool]
   runtime = tdata.runtime or 'docker'
   if not runtime in tdata:
@@ -257,29 +257,29 @@ def get_tool_runtime_param(tool: str, param: str, verbose: bool, topology: Box) 
 
   return tdata[param]
 
-"""
-Get a list of external tool commands to execute
-"""
 def get_tool_command(tool: str, cmd: str, topology: Box,verbose: bool = True) -> typing.Optional[list]:
+  """
+  Get a list of external tool commands to execute
+  """
   cmds = get_tool_runtime_param(tool,cmd,verbose,topology)
   if cmds is None:
     return None
   
   return cmds if isinstance(cmds,list) else [ cmds ]
 
-"""
-Check if the current topology uses docker in any way: does it have clab as primary or secondary provider?
-"""
 def docker_is_used(topology: Box) -> bool:
+  """
+  Check if the current topology uses docker in any way: does it have clab as primary or secondary provider?
+  """
   if topology.provider == 'clab':
     return True
 
   return 'clab' in topology[topology.provider].providers
 
-#
-# Get local IP address, either the endpoint of the SSH connection or loopback
-#
 def get_local_addr() -> str:
+  """
+  Get local IP address, either the endpoint of the SSH connection or loopback
+  """
   ssh_connection = os.environ.get("SSH_CONNECTION")
   if ssh_connection:
     ssh_list = ssh_connection.split(" ")
@@ -288,10 +288,10 @@ def get_local_addr() -> str:
     
   return "127.0.0.1"
 
-#
-# Execute external tool commands
-#
 def execute_tool_commands(cmds: list, topology: Box) -> typing.Optional[str]:
+  """
+  Execute external tool commands
+  """
   topology.sys.docker_net = ""
 
   loc_addr = get_local_addr()
@@ -320,20 +320,20 @@ def execute_tool_commands(cmds: list, topology: Box) -> typing.Optional[str]:
 
   return output
 
-#
-# Get the "how to connect to the tool" message
-#
 def get_tool_message(tool: str, topology: Box) -> typing.Optional[str]:
+  """
+  Get the "how to connect to the tool" message
+  """
   msg = get_tool_runtime_param(tool,'message',False,topology)
   if msg is None:
     return None
 
   return strings.eval_format(msg,topology)
 
-#
-# Keyboard interrupt handler
-#
 def interrupted(cmd: str, hint: str = 'interrupt') -> typing.NoReturn:
+  """
+  Keyboard interrupt handler
+  """
   print()
   msg = f'{cmd} command was interrupted'
   log.error(

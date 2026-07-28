@@ -11,10 +11,10 @@ from . import _nodeset, load_snapshot, parser_add_verbose, parser_lab_location, 
 from .connect import LogLevel, connect_to_node, get_log_level, quote_list
 
 
-#
-# CLI parser for 'netlab ' command
-#
 def exec_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+  """
+  CLI parser for 'netlab ' command
+  """
   parser = argparse.ArgumentParser(
       prog="netlab exec",
       description='Run a command on one or more network devices',
@@ -38,6 +38,9 @@ def exec_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typin
   return parser.parse_known_args(args)
       
 def run(cli_args: typing.List[str]) -> None:
+  """
+  Run execute command against node(s)
+  """
   (args, rest) = exec_parse(cli_args)
   log.set_logging_flags(args)
   log_level = get_log_level(args)

@@ -16,14 +16,17 @@ from ..augment import groups
 from ..utils import log
 
 
-# Is a string a glob expression?
 #
 def is_glob(pattern: str) -> bool:
+  """
+  Is a string a glob expression?
+  """
   return any([c in pattern for c in ['*','?','[']])
 
-# Find all names matching a glob expression and append them to the node name list
-#
 def add_glob(glob: str, names: list, results: list) -> int:
+  """
+  Find all names matching a glob expression and append them to the node name list
+  """
   g_count = 0
   for name in names:
     if fnmatch.fnmatch(name,glob):
@@ -33,21 +36,21 @@ def add_glob(glob: str, names: list, results: list) -> int:
 
   return g_count
 
-"""
-Given a nodeset (as a string) and the lab topology, return the list
-of nodes matching the nodeset. Generate errors as appropriate and
-abort if needed.
-
-Nodeset is a comma-separate list of:
-
-* Node names
-* Group names
-* Glob expressions matching node names
-
-The function does its best to maintain the order in which the nodes
-were specified.
-"""
 def parse_nodeset(ns: str, topology: Box) -> list:
+  """
+  Given a nodeset (as a string) and the lab topology, return the list
+  of nodes matching the nodeset. Generate errors as appropriate and
+  abort if needed.
+
+  Nodeset is a comma-separate list of:
+
+  * Node names
+  * Group names
+  * Glob expressions matching node names
+
+  The function does its best to maintain the order in which the nodes
+  were specified.
+  """
   n_names = list(topology.nodes.keys())
   d_names = list(topology.defaults.devices.keys())
   n_list: list = []
@@ -77,10 +80,10 @@ def parse_nodeset(ns: str, topology: Box) -> list:
   log.exit_on_error()
   return n_list
 
-"""
-Given a lab topology and a list of nodes, create a subset of the topology (to make our life easier)
-"""
 def get_nodeset(topology: Box, node_list: list) -> Box:
+  """
+  Given a lab topology and a list of nodes, create a subset of the topology (to make our life easier)
+  """
   pruned_box = data.get_box(topology)
   for node in list(pruned_box.nodes.keys()):
     if node not in node_list:

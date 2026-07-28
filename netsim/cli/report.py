@@ -13,10 +13,10 @@ from ..utils import read as _read
 from . import _nodeset, load_data_source, parser_add_verbose, parser_data_source
 
 
-#
-# CLI parser for 'netlab report' command
-#
 def report_parse(args: typing.List[str]) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab report' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab report",
     description='Create a report from the lab topology data')

@@ -15,10 +15,10 @@ from ..utils import log, strings
 from . import _nodeset, load_data_source, parser_add_verbose, parser_data_source
 
 
-#
-# CLI parser for 'netlab inspect' command
-#
 def inspect_parse(args: typing.List[str]) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab inspect' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab inspect",
     description='Inspect data structures in a lab topology')

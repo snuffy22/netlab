@@ -28,10 +28,10 @@ from . import (
 from .up import provider_probes
 
 
-#
-# CLI parser for 'netlab down' command
-#
 def down_parse(args: typing.List[str]) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab down' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab down",
     description='Destroy the virtual lab')
@@ -61,10 +61,10 @@ def down_parse(args: typing.List[str]) -> argparse.Namespace:
 
   return parser.parse_args(args)
 
-#
-# Cleanup common configuration files
-#
 def down_cleanup(topology: Box, verbose: bool = False) -> None:
+  """
+  Cleanup common configuration files
+  """
   p_provider = topology.provider
   cleanup_list = topology.defaults.providers[p_provider].cleanup or []
 
@@ -83,10 +83,10 @@ def down_cleanup(topology: Box, verbose: bool = False) -> None:
   cleanup_list.append('netlab.snapshot.pickle')
   fs_cleanup(cleanup_list,verbose)
 
-#
-# Cleanup tool configuration directories and other tool-related stuff
-#
 def tool_cleanup(topology: Box, verbose: bool = False) -> None:
+  """
+  Cleanup tool configuration directories and other tool-related stuff
+  """
   for tool in list(topology.tools.keys()):
     cmds = external_commands.get_tool_command(tool,'cleanup',topology,verbose=False) or []
     cmds.append(f'rm -fr {tool}')
@@ -94,13 +94,13 @@ def tool_cleanup(topology: Box, verbose: bool = False) -> None:
     if not is_dry_run():
       print(f"... cleaned up {tool} data")
 
-#
-# Stop the provider-specific workloads
-#
 def stop_provider_lab(
       topology: Box,
       pname: str,
       sname: typing.Optional[str] = None) -> None:
+  """
+  Stop the provider-specific workloads
+  """
   p_name = sname or pname
   p_topology = providers.select_topology(topology,p_name)
   p_module   = providers.get_provider_module(topology,p_name)
@@ -115,10 +115,10 @@ def stop_provider_lab(
   p_module.call('post_stop_lab',p_topology)
   _hooks.run_cli_hooks(topology,'down',f'post_stop_{p_name}')
 
-'''
-lab_dir_mismatch -- check if the lab instance is running in the current directory
-'''
 def lab_dir_mismatch(topology: Box, args: argparse.Namespace) -> bool:
+  """
+  Check if the lab instance is running in the current directory
+  """
   lab_id = status.get_lab_id(topology)
   lab_status = status.read_status(topology)       # Find current running instance(s)
   if not lab_id in lab_status:                    # This could be a lab instance from pre-status days
@@ -141,10 +141,10 @@ directory, but you might impact the running lab instance.
 
   return True
 
-"""
-Stop external tools
-"""
 def stop_external_tools(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Stop external tools
+  """
   lab_status_change(topology,f'stopping external tools')
   for tool in list(topology.tools.keys()):
     cmds = external_commands.get_tool_command(tool,'down',topology)

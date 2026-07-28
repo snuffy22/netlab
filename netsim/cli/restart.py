@@ -10,10 +10,10 @@ from ..utils import log
 from . import common_parse_args, down, load_snapshot, parser_lab_location, up
 
 
-#
-# Extra arguments for 'netlab up' command
-#
 def restart_parse_args() -> argparse.ArgumentParser:
+  """
+  Extra arguments for 'netlab up' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab restart",
     description='Reconfigure and restart the virtual lab',

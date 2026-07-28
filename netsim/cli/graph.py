@@ -17,10 +17,10 @@ from ..utils import read as _read
 from . import error_and_exit, external_commands, load_data_source, parser_add_verbose, parser_data_source
 
 
-#
-# CLI parser for 'netlab graph' command
-#
 def graph_parse(args: typing.List[str]) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab graph' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab graph",
     description='Create a graph description in Graphviz or D2 format or draw a graph',
@@ -66,6 +66,9 @@ def graph_parse(args: typing.List[str]) -> argparse.Namespace:
   return parser.parse_args(args)
 
 def parse_output(args: argparse.Namespace, topology: Box) -> typing.Tuple[typing.Optional[str],typing.Optional[str]]:
+  """
+  Determine output file location and if should be .dot or .d2 extension or should render to an image type
+  """
   if not args.output:
     return (None,None)
   o_path = Path(args.output)
@@ -76,10 +79,10 @@ def parse_output(args: argparse.Namespace, topology: Box) -> typing.Tuple[typing
   else:
     return (None,args.output)
 
-"""
-Execute the graphviz/D2 command to create the final graph
-"""
 def create_graph(o_type: str, o_name: str, args: argparse.Namespace, topology: Box) -> None:
+  """
+  Execute the graphviz/D2 command to create the final graph
+  """
   g_settings = topology.defaults.outputs['graph' if args.engine == 'graphviz' else 'd2']
   if 'command' not in g_settings:                 # Do we know what command to execute?
     log.warning(

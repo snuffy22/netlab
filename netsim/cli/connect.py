@@ -24,10 +24,10 @@ from ..utils import log, strings, templates
 from . import error_and_exit, external_commands, load_snapshot, parser_add_verbose, parser_lab_location, set_dry_run
 
 
-#
-# CLI parser for 'netlab initial' command
-#
 def connect_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+  """
+  CLI parser for 'netlab initial' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab connect",
     description='Connect to a network device or an external tool',
@@ -56,6 +56,9 @@ def docker_connect(
       p_args: argparse.Namespace,
       rest: typing.List[str],
       log_level: LogLevel = LogLevel.INFO) -> typing.Union[bool,int,str]:
+  """
+  Connect to a netlab node, using docker shell/exec commands
+  """
   host = data.ansible_host or data.host
 
   shell = data.get('docker_shell','bash' if rest else 'bash -il')
@@ -93,6 +96,9 @@ def ssh_connect(
       p_args: argparse.Namespace,
       rest: typing.List[str],
       log_level: LogLevel = LogLevel.INFO) -> typing.Union[bool,int,str]:
+  """
+  Connect to a netlab node, using SSH ignore known hosts and strict key checking
+  """
   host = data.ansible_host or data.host
   ssh_log_level = 'ERROR' if log.VERBOSE < 2 else 'INFO'
   c_args = ['ssh','-o','UserKnownHostsFile=/dev/null','-o','StrictHostKeyChecking=no','-o',f'LogLevel={ssh_log_level}']
@@ -175,6 +181,9 @@ def connect_to_node(
       rest: list,
       topology: Box,
       log_level: LogLevel = LogLevel.INFO) -> typing.Union[bool,int,str]:
+  """
+  Connect to a netlab node, determine if via docker or SSH
+  """
   
   host_data = outputs_common.adjust_inventory_host(
                 node=topology.nodes[node],
@@ -200,7 +209,9 @@ def connect_to_tool(
       topology: Box,
       log_level: LogLevel = LogLevel.INFO,
       need_output: bool = False) -> typing.Optional[typing.Union[bool,int,str]]:
-
+  """
+  Connect to a netlab tool that does ?
+  """
   cmds = external_commands.get_tool_command(tool,'connect',topology,verbose=False)
 
   loc_addr = external_commands.get_local_addr()
@@ -242,6 +253,9 @@ def get_log_level(args: argparse.Namespace) -> LogLevel:
     return LogLevel.INFO
 
 def run(cli_args: typing.List[str]) -> None:
+  """
+  Initial call by user to connect to a node or tool
+  """
   (args,rest) = connect_parse(cli_args)
   log.set_logging_flags(args)
   log_level = get_log_level(args)

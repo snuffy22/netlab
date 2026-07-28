@@ -12,10 +12,10 @@ from ..utils import log, strings
 from . import error_and_exit, external_commands, load_snapshot, parser_lab_location
 
 
-#
-# CLI parser for 'netlab capture' command
-#
 def capture_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+  """
+  CLI parser for 'netlab capture' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab capture",
     description='Start a packet capture on the specified node/interface',
@@ -32,6 +32,10 @@ def capture_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, ty
   return parser.parse_known_args(args)
 
 def run(cli_args: typing.List[str]) -> None:
+  """
+  Run will search for capture interface by device interface name, then clab interface name,
+  if still not found, report error to user
+  """
   (args,rest) = capture_parse(cli_args)
 
   topology = load_snapshot(args)

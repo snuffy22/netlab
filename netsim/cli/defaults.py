@@ -86,15 +86,15 @@ def defaults_parse(args: typing.List[str]) -> argparse.Namespace:
     help='Specify setting to set (with s=v) or display (can be a glob)')
   return parser.parse_args(args)
 
-'''
-Build list of defaults from the supplied defaults data structure
-'''
 def build_defaults_list(
       defs: Box,                                  # Default data
       namespace: typing.Optional[str],            # The namespace to use when displaying data
       reobj: typing.Optional[re.Pattern],         # Pattern matching
       prefix: str = '',                           # Default prefix (used for recursive scan)
       result: typing.Optional[Box] = None) -> Box:
+  """
+  Build list of defaults from the supplied defaults data structure
+  """
   
   if result is None:
     result = Box({},default_box=True)
@@ -127,15 +127,15 @@ D_SOURCES: dict = {
   'project': './defaults.yml'                                   # This one is assumed and might have to changed
 }
 
-'''
-Find the defaults file for the current project. It could be 'defaults.yml' in
-current directory or the first element of 'defaults.sources.extra' list in
-the default topology (topology.yml).
-
-If we can't find a feasible project default file, the 'project' entry is
-removed from the default sources
-'''
 def find_project_defaults() -> None:
+  """
+  Find the defaults file for the current project. It could be 'defaults.yml' in
+  current directory or the first element of 'defaults.sources.extra' list in
+  the default topology (topology.yml).
+
+  If we can't find a feasible project default file, the 'project' entry is
+  removed from the default sources
+  """
   global D_SOURCES
 
   if pathlib.Path(D_SOURCES['project']).exists():
@@ -151,11 +151,11 @@ def find_project_defaults() -> None:
 
   D_SOURCES.pop('project',None)
 
-'''
-Given candidate sources, change them into absolute paths and remove
-the non-existent ones (unless we're in "write" mode)
-'''
 def cleanup_sources(selection: dict, write: bool = False) -> dict:
+  """
+  Given candidate sources, change them into absolute paths and remove
+  the non-existent ones (unless we're in "write" mode)
+  """
   selection = { k:v for k,v in selection.items() }              # Make a copy of the list
   for k in list(selection):
     d_file = selection[k]
@@ -173,6 +173,9 @@ def source_specified(args: argparse.Namespace) -> bool:
   return args.ds_package or args.ds_system or args.ds_user or args.ds_directory or args.ds_project
 
 def get_sources(args: argparse.Namespace, write: bool = False) -> dict:
+  """
+  Check which source lists we should be referring to
+  """
   global D_SOURCES
 
   s_list = []
@@ -211,10 +214,10 @@ def build_defaults_sources(reobj: typing.Optional[re.Pattern], sources: dict) ->
 
   return result
 
-'''
-Create compiled regex from input prefix, glob, or regex
-'''
 def get_re_pattern(txt: str, regex: bool = False) -> re.Pattern:
+  """
+  Create compiled regex from input prefix, glob, or regex
+  """
   try:
     if not regex:                                           # Input parameter is not a regex match
       if any([k in txt for k in ['*','[']]):                # ... is it a glob?
@@ -229,6 +232,9 @@ def get_re_pattern(txt: str, regex: bool = False) -> re.Pattern:
   return reobj
 
 def print_def_list(def_expanded: Box, args: argparse.Namespace) -> None:
+  """
+  Print list of defaults to user, check output style is yaml, export or none (default)
+  """
   def_dict = def_expanded.to_dict()
   to_yaml = args.format == 'yaml'
   for k in sorted(def_expanded):
@@ -267,11 +273,11 @@ def default_show(args: argparse.Namespace) -> None:
     d_src_txt = '' if d_sources == D_SOURCES else f' in {",".join(d_sources)} defaults'
     error_and_exit(f'{args.setting}{" regular expression" if args.regex else ""} not found{d_src_txt}',module='-')
 
-"""
-Read comments from a defaults file. Return two lists of comment lines, one at the top of the file,
-the other containing all other comments.
-"""
 def read_comments(src: str) -> typing.List[list]:
+  """
+  Read comments from a defaults file. Return two lists of comment lines, one at the top of the file,
+  the other containing all other comments.
+  """
   d_path = pathlib.Path(src)
   c_list: typing.List[list] = [[],[]]
   if not d_path.exists():
@@ -287,17 +293,17 @@ def read_comments(src: str) -> typing.List[list]:
 
   return c_list
 
-"""
-Expand settings into the 'path: value' format
-"""
 def path_value_settings(data: Box) -> str:
+  """
+  Expand settings into the 'path: value' format
+  """
   list_data = build_defaults_list(data,None,None)
   return list_data.to_yaml()
 
-"""
-Update defaults datastore
-"""
 def update_datastore(data: Box, path: str, store_as_yaml: bool) -> None:
+  """
+  Update defaults datastore
+  """
   d_comments = read_comments(path)
   d_comments[0].append('---')
   if store_as_yaml:
@@ -308,10 +314,10 @@ def update_datastore(data: Box, path: str, store_as_yaml: bool) -> None:
   txt = "\n".join(["\n".join(d_comments[0]),contents,"\n".join(d_comments[1])]) + "\n"
   pathlib.Path(path).write_text(txt)
 
-"""
-Make the change to the specified setting
-"""
 def change_default_setting(s_path: str, s_value: typing.Any, src: str, store_as_yaml: bool) -> None:
+  """
+  Make the change to the specified setting
+  """
   try:
     d_data = _read.read_yaml(src)
     if d_data is None:
@@ -325,10 +331,10 @@ def change_default_setting(s_path: str, s_value: typing.Any, src: str, store_as_
       f'Cannot set {s_path} to {s_value} in {src}',
       more_hints=str(ex))
 
-"""
-Change a default setting
-"""
 def default_set(args: argparse.Namespace) -> None:
+  """
+  Change a default setting
+  """
   global D_SOURCES
 
   s_params = args.setting.split('=')
@@ -359,10 +365,10 @@ def default_set(args: argparse.Namespace) -> None:
 
   change_default_setting(s_path,s_value,w_sources[w_best_src],args.yaml)
 
-'''
-Delete specified settings
-'''
 def default_delete(args: argparse.Namespace) -> None:
+  """
+  Delete specified settings
+  """
   if not source_specified(args):
     error_and_exit('You have to specify the datastore from which you want to delete the settings')
 
@@ -400,6 +406,9 @@ def default_delete(args: argparse.Namespace) -> None:
   print(f"The specified settings were deleted from {df_name}")
 
 def run(cli_args: typing.List[str]) -> None:
+  """
+  Run the netlab CLI defaults
+  """
   args = defaults_parse(cli_args)
   log.set_logging_flags(args)
   if args.setting.startswith('default'):

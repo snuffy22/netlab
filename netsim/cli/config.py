@@ -27,10 +27,10 @@ from .initial import ready as i_ready
 from .initial import utils as i_utils
 
 
-#
-# CLI parser for 'netlab config' command
-#
 def custom_config_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+  """
+  CLI parser for 'netlab config' command
+  """
   parser = argparse.ArgumentParser(
     prog='netlab config',
     description='Deploy custom configuration template',
@@ -99,18 +99,11 @@ def parse_extra_vars(ev_list: typing.Optional[list]) -> dict:
 
   return ev
 
-"""
-Create the required configs in node_files
-"""
-def create_node_files(
-      topology: Box,
-      nodeset: list,
-      args: argparse.Namespace,
-      cfg_name: str,
-      extra_vars: dict = {},
-      initial: bool = False,
-      cfg_suffix: str = 'none') -> None:
-
+def create_node_files(topology: Box,nodeset: list,args: argparse.Namespace,cfg_name: str,
+                      extra_vars: dict = {},initial: bool = False,cfg_suffix: str = 'none') -> None:
+  """
+  Create the required configs in node_files
+  """
   set_initial_args(args,initial=initial)              # Adjust args for 'netlab initial' processing
   set_custom_config(topology,nodeset,cfg_name,extra_vars)
 
@@ -124,10 +117,10 @@ def create_node_files(
     default_suffix=cfg_suffix)
   log.exit_on_error()                                 # Stop if the files could not be created
 
-"""
-Reload node configurations
-"""
 def reload_node_configs(topology: Box,nodeset: list,args: argparse.Namespace, rest: list) -> None:
+  """
+  Reload node configurations, warn if devices cannot be reloaded or has no saved configuration
+  """
   cfg_path = Path(args.template).resolve().absolute()
   if not cfg_path.is_dir():                           # Sanity check: are we reloading from a directory?
     error_and_exit('The argument specified with the --reload option must be a directory')
@@ -200,6 +193,9 @@ def reload_node_configs(topology: Box,nodeset: list,args: argparse.Namespace, re
     error_and_exit('Cannot reload initial device configurations')
 
 def deploy_custom_config(topology: Box,nodeset: list,args: argparse.Namespace, rest: list) -> None:
+  """
+  Deploy config from custom directory, apply over the top of existing topology
+  """
   cfg_name = args.template
   if '/' in cfg_name:                             # Custom config specified as a path to directory
     cfg_path = Path(cfg_name).absolute().resolve()
@@ -222,6 +218,9 @@ def deploy_custom_config(topology: Box,nodeset: list,args: argparse.Namespace, r
     error_and_exit('Cannot deploy custom configuration template')
 
 def run_config(cli_args: typing.List[str]) -> None:
+  """
+  Take user topology and configure the devices if there are no nodes exit early
+  """
   (args,rest) = custom_config_parse(cli_args)
   log.set_logging_flags(args)
   topology = load_snapshot(args)
@@ -241,10 +240,10 @@ def run_config(cli_args: typing.List[str]) -> None:
     log.info("Use 'netlab initial --limit netlab_no_reload' to deploy initial configuration on"+ \
              " devices that don't support configuration reload")
 
-"""
-We need a wrapper around the actual "run" function to catch the user interrupts
-"""
 def run(cli_args: typing.List[str]) -> None:
+  """
+  We need a wrapper around the actual "run" function to catch the user interrupts
+  """
   try:
     run_config(cli_args)
   except KeyboardInterrupt:

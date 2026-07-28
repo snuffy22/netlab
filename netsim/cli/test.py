@@ -18,10 +18,10 @@ from ..utils import read as _read
 from . import external_commands
 
 
-#
-# CLI parser for 'netlab config' command
-#
 def test_parse(args: typing.List[str], settings: Box) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab config' command
+  """
   c_path  = _files.get_traversable_path('package:templates/tests')   # Directory containing test scenarios
   c_list  = _files.get_globbed_files(c_path,'*.yml')                  # Find all test scenarios
   choices = sorted([ Path(fn).stem for fn in c_list ])

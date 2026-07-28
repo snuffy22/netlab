@@ -33,10 +33,10 @@ from . import (
 )
 
 
-#
-# Extra arguments for 'netlab up' command
-#
 def up_parse_args(standalone: bool) -> argparse.ArgumentParser:
+  """
+  Extra arguments for 'netlab up' command
+  """
   parse_parents = [ common_parse_args() ] if standalone else []
   parser = argparse.ArgumentParser(
     description='netlab up extra arguments',
@@ -81,10 +81,10 @@ def up_parse_args(standalone: bool) -> argparse.ArgumentParser:
     help=argparse.SUPPRESS)
   return parser
 
-"""
-Get lab topology from the snapshot file or run the transformation process
-"""
 def get_topology(args: argparse.Namespace, cli_args: typing.List[str]) -> Box:
+  """
+  Get lab topology from the snapshot file or run the transformation process
+  """
   up_args_parser = up_parse_args(bool(args.snapshot))         # (re)create the correct parser
 
   if args.snapshot:                                           # If we're using the snapshot file...
@@ -100,16 +100,10 @@ def get_topology(args: argparse.Namespace, cli_args: typing.List[str]) -> Box:
 
   return topology
 
-"""
-Lab status routines:
-
-* status_start_lab -- lab initialization has started
-* status_start_provider -- provider activation has started
-* status_config -- configuration deployment has started
-* status_complete -- lab initialization has completed
-"""
-
 def lab_status_start(status: Box, topology: Box) -> None:
+  """
+  Check on the status of lab start
+  """
   lab_id = _status.get_lab_id(topology)                     # Get the lab ID (or default)
   if lab_id in status:
     if status[lab_id].dir != os.getcwd():
@@ -125,11 +119,17 @@ def lab_status_start(status: Box, topology: Box) -> None:
       'providers': [] })
 
 def status_start_lab(topology: Box) -> None:
+  """
+  Lab initialization has started
+  """
   _status.change_status(
     topology,
     callback = lambda s,t: lab_status_start(s,t))
 
 def status_start_provider(topology: Box, provider: str) -> None:
+  """
+  Provider activation has started
+  """
   _status.change_status(
     topology,
     callback = lambda s,t: 
@@ -137,10 +137,10 @@ def status_start_provider(topology: Box, provider: str) -> None:
         update = { 'status': f'starting provider {provider}' },
         cb = lambda s: s.providers.append(provider)))
 
-"""
-check_existing_lab -- print an command-specific error message if there'a s lab already running in this directory
-"""
 def check_existing_lab() -> None:
+  """
+  Print an command-specific error message if there'a s lab already running in this directory
+  """
   if not _status.is_directory_locked():
     return
   
@@ -157,10 +157,10 @@ netlab.lock file manually and retry.
 ''')
   log.fatal('Cannot start another lab in the same directory')
 
-"""
-check_lab_instance -- print an error message if the lab instance is already running in a different directory
-"""
 def check_lab_instance(topology: Box) -> None:
+  """
+  Print an error message if the lab instance is already running in a different directory
+  """
   lab_id = _status.get_lab_id(topology)           # Get the current lab instance ID from lab topology
   lab_states = _status.read_status(topology)      # Read the state of existing lab instances
 
@@ -184,10 +184,10 @@ delete it.
 ''')
   log.fatal(f'aborting "netlab up" request')
 
-"""
-Execute provider probes
-"""
 def provider_probes(topology: Box) -> None:
+  """
+  Execute provider probes
+  """
   p_provider = topology.provider
   defaults = topology.defaults
 
@@ -196,10 +196,10 @@ def provider_probes(topology: Box) -> None:
   for s_provider in topology[p_provider].providers:
     external_commands.run_probes(defaults,s_provider)
 
-"""
-Start lab topology for a single provider
-"""
 def start_provider_lab(topology: Box, pname: str, sname: typing.Optional[str] = None) -> None:
+  """
+  Start lab topology for a single provider
+  """
   p_name   = sname or pname
   p_module = providers.get_provider_module(topology,p_name)
 
@@ -229,10 +229,10 @@ def start_provider_lab(topology: Box, pname: str, sname: typing.Optional[str] = 
 
   lab_status_change(topology,f'{p_name} workload started')
 
-"""
-Recreate secondary configuration file
-"""
 def recreate_secondary_config(topology: Box, p_provider: str, s_provider: str) -> None:
+  """
+  Recreate secondary configuration file
+  """
   sp_data = topology.defaults.providers[p_provider][s_provider]
   if not sp_data.recreate_config:                                     # Do we need to recreate the config file?
     return
@@ -243,10 +243,10 @@ def recreate_secondary_config(topology: Box, p_provider: str, s_provider: str) -
   print(f"Recreating {filename} configuration file for {s_provider} provider",flush=True)
   sp_module.create(s_topology,filename)                               # ... and create the new configuration file
 
-"""
-Deploy initial configuration
-"""
 def deploy_initial_config(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Deploy initial configuration
+  """
   if args.no_config:
     print()
     strings.print_colored_text('[SKIPPED] ','yellow',None)
@@ -264,10 +264,10 @@ def deploy_initial_config(args: argparse.Namespace, topology: Box) -> None:
   if message:
     print(f"\n\n{message}",flush=True)
 
-"""
-Reload saved configurations
-"""
 def reload_saved_config(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Reload saved configurations
+  """
   lab_status_change(topology,f'reloading saved initial configurations')
   log.section_header('Reloading','saved initial device configurations')
   _hooks.run_cli_hooks(topology,'up','pre_reload_config')
@@ -279,10 +279,10 @@ def reload_saved_config(args: argparse.Namespace, topology: Box) -> None:
   log.status_success()
   print("Saved configurations reloaded",flush=True)
 
-"""
-Check the state of the external tool container
-"""
 def check_tool_status(tool: str, status: typing.Optional[str], topology: Box) -> bool:
+  """
+  Check the state of the external tool container
+  """
   if status is None:
     return False
 
@@ -297,10 +297,10 @@ def check_tool_status(tool: str, status: typing.Optional[str], topology: Box) ->
 
   return bool(c_stat)
 
-"""
-Deploy external tools
-"""
 def start_external_tools(args: argparse.Namespace, topology: Box) -> None:
+  """
+  Deploy external tools
+  """
   if not 'tools' in topology:
     return
   if args.no_tools:
@@ -342,10 +342,10 @@ def start_external_tools(args: argparse.Namespace, topology: Box) -> None:
     log.partial_success(t_success,t_count)
     print(f"{t_success}/{t_count} external tools started",flush=True)
 
-"""
-Main "lab start" process
-"""
 def run_up(cli_args: typing.List[str]) -> None:
+  """
+  Main "lab start" process
+  """
   up_args_parser = up_parse_args(False)                       # Try to parse the up-specific arguments
   (args,rest) = up_args_parser.parse_known_args(cli_args)
   if args.reload and args.no_config:

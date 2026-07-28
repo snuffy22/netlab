@@ -17,6 +17,9 @@ from . import external_commands
 
 
 def check_version(fatal: bool = False) -> None:
+  """
+  Verify the Ansible version in use, known issues >= 2.19
+  """
   try:
     import ansible  # type: ignore
     if ansible.__version__ >= '2.19':           # Ansible core 2.19 contains significant templating changes
@@ -33,6 +36,9 @@ def check_version(fatal: bool = False) -> None:
     log.warning(text=f"Cannot determine Ansible version: {str(ex)}",module='ansible')
 
 def find_playbook(name: str) -> typing.Union[str,None]:
+  """
+  Search for playbook to run
+  """
   cwd = Path(os.getcwd()).resolve()
   scriptdir = Path(sys.argv[0]).resolve().parent
   moddir = Path(__file__).resolve().parent.parent
@@ -44,6 +50,9 @@ def find_playbook(name: str) -> typing.Union[str,None]:
   return None
 
 def inventory(name: str) -> typing.Optional[dict]:
+  """
+  Check the Ansible inventory exists and is valid JSON
+  """
   try:
     result = subprocess.run(['ansible-inventory','--host',name],capture_output=True,check=True,text=True)
     try:
@@ -60,6 +69,9 @@ def inventory(name: str) -> typing.Optional[dict]:
     log.fatal('Cannot get Ansible inventory data for %s with ansible-inventory. Is the host name correct?' % name,'inventory')
 
 def playbook(name: str, args: typing.List[str], abort_on_error: bool = True) -> bool:
+  """
+  Find the Ansible playbook and run it
+  """
   pbname = find_playbook(name)
   if not pbname:
     log.fatal("Cannot find Ansible playbook %s, aborting" % name)
@@ -76,12 +88,12 @@ def playbook(name: str, args: typing.List[str], abort_on_error: bool = True) -> 
 
   return OK is True
 
-"""
-Create the extra vars structure that will be passed to Ansible playbook to modify
-the search paths. We could just change the Ansible playbooks, but this keeps some
-level of compatibility with older code (and an escape strategy ;).
-"""
 def ansible_extra_vars(topology: Box, reload: bool = False, extra_vars: typing.Optional[dict] = None) -> Box:
+  """
+  Create the extra vars structure that will be passed to Ansible playbook to modify
+  the search paths. We could just change the Ansible playbooks, but this keeps some
+  level of compatibility with older code (and an escape strategy ;).
+  """
   cfg_sfx = '.cfg' if reload else ''
 
   if extra_vars is None:

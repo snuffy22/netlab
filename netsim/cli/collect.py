@@ -12,10 +12,10 @@ from ..utils import log
 from . import ansible, external_commands, fs_cleanup, parser_add_verbose, parser_lab_location
 
 
-#
-# CLI parser for 'netlab collect' command
-#
 def collect_parse(args: typing.List[str]) -> typing.Tuple[argparse.Namespace, typing.List[str]]:
+  """
+  CLI parser for 'netlab collect' command
+  """
   parser = argparse.ArgumentParser(
     prog="netlab collect",
     description='Collect device configurations',
@@ -55,6 +55,10 @@ def get_tarball_file(tarball: str) -> str:
   return tarball
 
 def run(cli_args: typing.List[str]) -> None:
+  """
+  Extract all device configurations from current running lab/topology
+  First create directory, collect configurations, provide tar.gz file with results
+  """
   run_dir = os.getcwd()
   (args,rest) = collect_parse(cli_args)
   log.set_logging_flags(args)

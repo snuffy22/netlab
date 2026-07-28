@@ -38,9 +38,10 @@ def parser_add_debug(parser: argparse.ArgumentParser, add_test: bool = True) -> 
                     choices=['errors'],
                     help=argparse.SUPPRESS)
 
-# Some CLI utilities might use the 'verbose' flag without other common arguments
-#
 def parser_add_verbose(parser: argparse.ArgumentParser, verbose: bool = True, quiet: bool = True) -> None:
+  """
+  Some CLI utilities might use the 'verbose' flag without other common arguments
+  """
   if verbose:
     parser.add_argument('-v','--verbose', dest='verbose', action='count', default = 0,
                     help='Verbose logging (add multiple flags for increased verbosity)')
@@ -60,16 +61,11 @@ def common_parse_args(debugging: bool = False) -> argparse.ArgumentParser:
 
   return parser
 
-'''
-Add --snapshot or --instance parameter, optionally hiding 'snapshot' from the help message
-'''
-def parser_lab_location(
-      parser: argparse.ArgumentParser,
-      snapshot: bool = False,
-      instance: bool = False,
-      i_used: bool = False,
-      hide: bool = False,
-      action: str = 'work on') -> None:
+def parser_lab_location(parser: argparse.ArgumentParser,snapshot: bool = False,instance: bool = False,
+      i_used: bool = False,hide: bool = False,action: str = 'work on') -> None:
+  """
+  Add --snapshot or --instance parameter, optionally hiding 'snapshot' from the help message
+  """
   i_flags = ['--instance']
   if not i_used:
     i_flags = ['-i'] + i_flags
@@ -89,16 +85,15 @@ def parser_lab_location(
       const='netlab.snapshot.pickle',
       help=argparse.SUPPRESS if hide else 'Transformed topology snapshot file')
 
-'''
-Add parser parameters to specify the data source for reporting/graphing commands.
-The data source could be the snapshot file, the topology file, or the lab instance
-'''
 def parser_data_source(
       parser: argparse.ArgumentParser,
       i_used: bool = False,                       # -i flag is used for something else
       t_used: bool = False,                       # -t flag is used for something else
       action: str = '') -> None:
-
+  """
+  Add parser parameters to specify the data source for reporting/graphing commands.
+  The data source could be the snapshot file, the topology file, or the lab instance
+  """
   action = action or 'use as data source'
   parser_lab_location(parser,i_used=i_used,instance=True,snapshot=True,action=action)
   t_flags = ['--topology'] if t_used else ['-t', '--topology']
@@ -186,11 +181,10 @@ def set_env_args(args: argparse.Namespace, topology: typing.Optional[Box] = None
   if log.VERBOSE >= 3:
     print(f'Setting NETLAB_ARGS_TOPOLOGY={topo_input[0]}')
 
-#
-# Common file/directory cleanup routine, used by collect/clab/down
-#
-
 def fs_cleanup(filelist: typing.List[str], verbose: bool = False) -> None:
+  """
+  Common file/directory cleanup routine, used by collect/clab/down
+  """
   global DRY_RUN
   for fname in filelist:
     if os.path.isdir(fname):
@@ -222,9 +216,10 @@ def fs_cleanup(filelist: typing.List[str], verbose: bool = False) -> None:
       except Exception as ex:                             # Finally, report an error if we cannot remove the file
         log.fatal(f"Cannot remove {fname}: {ex}")
 
-# Common topology loader (used by create)
-
 def load_topology(args: typing.Union[argparse.Namespace,Box]) -> Box:
+  """
+  Common topology loader (used by create)
+  """
   log.set_logging_flags(args)
   relative_name = 'test' in args and args.test and 'errors' in args.test
   topology = _read.load(args.topology,args.defaults,relative_topo_name=relative_name)
@@ -236,11 +231,11 @@ def load_topology(args: typing.Union[argparse.Namespace,Box]) -> Box:
   log.exit_on_error()
   return topology
 
-"""
-Find a lab instance and change directory so the rest of the shutdown
-process works from that directory
-"""
 def change_lab_instance(instance: typing.Union[int,str], quiet: bool = False) -> None:
+  """
+  Find a lab instance and change directory so the rest of the shutdown
+  process works from that directory
+  """
   topology = _read.system_defaults()
   lab_states = _status.read_status(topology)
   try:                                                      # Maybe the instance is an integer?
@@ -307,14 +302,14 @@ def load_snapshot(
   check_modified_source(snapshot,topology,warn_modified)
   return topology
 
-"""
-Load data for a reporting/graphing command. The data source could be specified as
-
-* A lab instance -- unconditionally change directory and load the snapshot file
-* A snapshot file -- used when exist
-* A topology file
-"""
 def load_data_source(args: argparse.Namespace, ghosts: bool = True) -> Box:
+  """
+  Load data for a reporting/graphing command. The data source could be specified as
+
+  * A lab instance -- unconditionally change directory and load the snapshot file
+  * A snapshot file -- used when exist
+  * A topology file
+  """
   from . import create
 
   global NETLAB_COMMAND
@@ -378,10 +373,10 @@ def check_modified_source(
 
   return None
 
-# get_message: get action-specific message from topology file
-#
-
 def get_message(topology: Box, action: str, default_message: bool = False) -> typing.Optional[str]:
+  """
+  Get action-specific message from topology file
+  """
   global DRY_RUN
   if not 'message' in topology or DRY_RUN:
     return None
@@ -394,20 +389,15 @@ def get_message(topology: Box, action: str, default_message: bool = False) -> ty
 
   return topology.message.get(action,None)                  # Return action-specific message if it exists
 
-"""
-lab_status_update -- generic lab status callback
-
-* Get the lab ID (or default)
-* Map lab ID into current directory
-* Merge status dictionary or perform status-specific callback
-"""
-
-def lab_status_update(
-      topology: Box,
-      status: Box,
-      update: typing.Optional[dict] = None,
+def lab_status_update(topology: Box,status: Box,update: typing.Optional[dict] = None,
       cb: typing.Optional[typing.Callable] = None) -> None:
+  """
+  Generic lab status callback
 
+  * Get the lab ID (or default)
+  * Map lab ID into current directory
+  * Merge status dictionary or perform status-specific callback
+  """
   if DRY_RUN:                                               # Don't update status if we're in dry-run mode 
     return
   lab_id = _status.get_lab_id(topology)                     # Get the lab ID (or default)
@@ -448,10 +438,10 @@ def lab_status_update(
   if cb is not None:                                        # If needed, perform status-specific callback        
     cb(status[lab_id])
 
-"""
-lab_status_change -- change current lab status
-"""
 def lab_status_change(topology: Box, new_status: str) -> None:
+  """
+  Change current lab status
+  """
   global DRY_RUN
   if DRY_RUN:                                              # Don't update status if we're in dry-run mode 
     return
@@ -462,21 +452,20 @@ def lab_status_change(topology: Box, new_status: str) -> None:
       lab_status_update(t,s,
         update = { 'status': new_status }))
 
-"""
-lab_status_log -- change current lab status
-"""
 def lab_status_log(topology: Box, log_line: str) -> None:
+  """
+  Change current lab status
+  """
   _status.change_status(
     topology,
     callback = lambda s,t:
       lab_status_update(t,s,
         update = { 'log_line': log_line }))
 
-"""
-error_and_exit -- display an error message nicer than log.fatal and exit
-"""
-
 def error_and_exit(errmsg: str,**kwargs: typing.Any) -> typing.NoReturn:
+  """
+  Display an error message nicer than log.fatal and exit
+  """
   global NETLAB_COMMAND
   if 'module' not in kwargs:
     kwargs['module'] = NETLAB_COMMAND

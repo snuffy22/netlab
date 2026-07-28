@@ -14,10 +14,10 @@ from ..utils import read as _read
 from . import common_parse_args, parser_add_debug, topology_parse_args
 
 
-#
-# CLI parser for 'netlab read' command
-#
 def read_topology_parse(args: typing.List[str]) -> argparse.Namespace:
+  """
+  CLI parser for 'netlab read' command
+  """
   parser = argparse.ArgumentParser(
     parents=[ common_parse_args(),topology_parse_args() ],
     prog="netlab read",
