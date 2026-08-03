@@ -34,12 +34,11 @@ def exec_ping(
   cmd += ' || true'
   return cmd
 
-'''
-Extract the IP address the device tried to ping from the
-result message and add it to the hostname if it differs from
-the hostname used in validation request
-'''
 def extract_host(hostname: str, result: str) -> str:
+  """
+  Extract the IP address the device tried to ping from the result message and
+  add it to the hostname if it differs from the hostname used in validation request
+  """
   result_hdr = result.split(':')[0]                       # Get the initial 'PING X (A.B.C:D):' part
   if ':' not in result or hostname not in result_hdr:     # The hostname should be part of it, otherwise give up
     return hostname

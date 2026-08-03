@@ -149,27 +149,27 @@ def valid_bgp_neighbor_details(
 
   return f'All specified BGP neighbor parameters have the expected values'
 
-"""
-BGP prefix checks, starting with 'get a BGP prefix from JSON results'
-"""
 def get_bgp_prefix(pfx: str, data: Box, **kwargs: typing.Any) -> typing.Optional[typing.Union[Box,BoxList]]:
+  """
+  BGP prefix checks, starting with 'get a BGP prefix from JSON results'
+  """
   if 'prefix' not in data:
     return None
 
   return data.paths
 
-"""
-Select BGP paths with the specified BGP peer (router ID)
-"""
 def filter_bgp_peer(data: list, value: typing.Any, **kwargs: typing.Any) -> list:
+  """
+  Select BGP paths with the specified BGP peer (router ID)
+  """
   return [ p for p in data if p.peer.routerId == value ]
 
-"""
-Select BGP paths with the specified next hop
-
-Implements custom exception listing next hops found in the data
-"""
 def filter_bgp_nh(data: list, value: typing.Any, pfx: str, state: str, **kwargs: typing.Any) -> list:
+  """
+  Select BGP paths with the specified next hop
+
+  Implements custom exception listing next hops found in the data
+  """
   value = value.split('/')[0]                         # Get IP address from a CIDR address
   found_nh = []
   result = []
@@ -185,17 +185,17 @@ def filter_bgp_nh(data: list, value: typing.Any, pfx: str, state: str, **kwargs:
 
   return result
 
-"""
-Select best BGP path(s)
-"""
 def filter_best(data: list, value: typing.Any, **kwargs: typing.Any) -> list:
+  """
+  Select best BGP path(s)
+  """
   return [ p for p in data if p.get('bestpath',{}).get('overall',None) == value ]
 
 
-"""
-Check BGP cluster ID on BGP paths
-"""
 def check_cluster_id(data: list, value: typing.Any, pfx: str, state: str, **kwargs: typing.Any) -> list:
+  """
+  Check BGP cluster ID on BGP paths
+  """
   result = [ p_element for p_element in data
                 if 'clusterList' in p_element and value in p_element.clusterList.get('list',[]) ]
 
@@ -204,10 +204,10 @@ def check_cluster_id(data: list, value: typing.Any, pfx: str, state: str, **kwar
 
   return result
 
-"""
-Check presence or absence of BGP communities
-"""
 def check_community(data: list, value: typing.Any, pfx: str, state: str, **kwargs: typing.Any) -> list:
+  """
+  Check presence or absence of BGP communities
+  """
   if not isinstance(value,dict):
     raise Exception('Community check expects a dictionary of communities')
 
@@ -227,10 +227,10 @@ def check_community(data: list, value: typing.Any, pfx: str, state: str, **kwarg
 
   raise log.Result(f"The prefix {pfx} contains the expected communities")
 
-"""
-Check complete AS path
-"""
 def check_aspath(data: list, value: typing.Any, pfx: str, state: str, **kwargs: typing.Any) -> list:
+  """
+  Check complete AS path
+  """
   result = []
   p_found = []
 
@@ -245,10 +245,10 @@ def check_aspath(data: list, value: typing.Any, pfx: str, state: str, **kwargs: 
   
   return result
 
-"""
-Check elements of an AS path
-"""
 def check_as_elements(data: list, value: typing.Any, pfx: str, state: str, **kwargs: typing.Any) -> list:
+  """
+  Check elements of an AS path
+  """
   result = []
   p_found = []
 
@@ -272,24 +272,18 @@ def check_as_elements(data: list, value: typing.Any, pfx: str, state: str, **kwa
   
   return result
 
-"""
-Check BGP local preference
-"""
 def check_locpref(data: list, value: typing.Any, **kwargs: typing.Any) -> list:
+  """
+  Check BGP local preference
+  """
   return [ p for p in data if p.get('locPrf',None) == value ]
 
-"""
-Check MED
-"""
 def check_med(data: list, value: typing.Any, **kwargs: typing.Any) -> list:
+  """
+  Check MED
+  """
   return [ p for p in data if p.get('metric',None) == value ]
 
-"""
-BGP prefix validation function:
-
-* Use single-prefix show command
-* Use the run_prefix_checks framework for validation
-"""
 def show_bgp_prefix(pfx: str, af: str = 'ipv4', vrf: str = 'default', **kwargs: typing.Any) -> str:
   pfx = _rp_utils.get_prefix(pfx)
   return f"bgp vrf {vrf} {af} unicast {pfx} json"
@@ -301,6 +295,12 @@ def valid_bgp_prefix(
       vrf: str = 'default',
       **kwargs: typing.Any) -> str:
   _result = global_vars.get_result_dict('_result')
+  """
+  BGP prefix validation function:
+
+  * Use single-prefix show command
+  * Use the run_prefix_checks framework for validation
+  """
 
   return _common.run_prefix_checks(
             pfx = pfx,
