@@ -6,6 +6,7 @@ import typing
 
 from . import parser_subcommands, subcommand_usage
 from .usage_actions import show as _usage_show
+from .usage_actions import upload as _usage_upload
 from .usage_actions import utils as _usage_utils
 
 usage_dispatch: dict = {
@@ -28,6 +29,11 @@ usage_dispatch: dict = {
     'exec':  _usage_show.show_commands,
     'parser': _usage_show.show_parser,
     'description': 'display collected usage statistics'
+  },
+  'upload': {
+    'exec': _usage_upload.upload,
+    'parser': _usage_upload.upload_parser,
+    'description': 'inspect or submit an anonymous aggregate usage batch'
   }
 }
 

@@ -1,6 +1,7 @@
 # Usage stats utility functions
 #
 import os
+import tempfile
 import time
 import typing
 
@@ -11,6 +12,7 @@ from ..augment import devices
 from ..data import get_box, get_empty_box
 from ..data.global_vars import get_const
 from ..utils import log
+from . import usage_payload
 
 '''
 get_filename -- get the name of the netlab stats file
@@ -80,8 +82,8 @@ def lock_and_read_stats() -> typing.Optional[Box]:
   try:
     status_dir = os.path.dirname(stat_name)
     if not os.path.exists(status_dir):
-      os.makedirs(status_dir)
-  except:
+      os.makedirs(status_dir,mode=0o700)
+  except Exception:
     log.fatal(f'Cannot create lab status directory {status_dir}')
 
   if lock_stats(stat_name):
@@ -95,19 +97,43 @@ write_stats: recreate the stats file from in-memory data and unlock it
 '''
 def write_stats(stats: Box, force: bool = False) -> None:
   if stats.get('_disabled',False) and not force:
+    unlock_stats()
     return
 
   ts = ts_int()
   if '_created' not in stats:
     stats._created = ts
 
+  # Kept for backward compatibility with existing local files. The identifier
+  # is never included in the upload payload.
   if '_id' not in stats:
     stats._id = format(time.time_ns(),'020x')
 
   stats._updated = ts
   stat_name = get_filename()
-  if lock_stats(stat_name):
-    stats.to_json(filename=stat_name,indent=2)
+  if not lock_stats(stat_name):
+    return
+
+  tmp_name: typing.Optional[str] = None
+  try:
+    stat_dir = os.path.dirname(stat_name)
+    fd,tmp_name = tempfile.mkstemp(prefix='.stats-',suffix='.json',dir=stat_dir)
+    os.close(fd)
+    stats.to_json(filename=tmp_name,indent=2)
+    os.chmod(tmp_name,0o600)
+    os.replace(tmp_name,stat_name)
+    tmp_name = None
+  except Exception as ex:
+    log.warning(
+      text=f'Cannot write usage statistics file {stat_name}',
+      more_data=str(ex),
+      module='stats')
+  finally:
+    if tmp_name and os.path.exists(tmp_name):
+      try:
+        os.unlink(tmp_name)
+      except Exception:
+        pass
     unlock_stats()
 
 '''
@@ -202,6 +228,20 @@ def update_topo_stats(topology: Box) -> None:
     add_counter(stats,f'plugin.{p}.use')
 
   update_max_vals(stats,max_vals)                                   # Move max values to statistics
+
+  # Maintain a separate, finite-vocabulary pending batch for optional upload.
+  # The full local statistics above remain unchanged and continue to support
+  # the existing `netlab usage show` command.
+  try:
+    pending = usage_payload.ensure_batch(stats,'_pending')
+    usage_payload.collect_topology(
+      pending,
+      topology,
+      provider_getter=lambda node: devices.get_provider(node,topology.defaults))
+  except Exception as ex:
+    # Usage collection is best-effort and must never block a lab operation.
+    stats_update_error(ex,'anonymous upload batch')
+
   write_stats(stats)                                                # ... and update statistics
 
 def stats_update_error(ex: Exception,item: str = '') -> None:
@@ -225,8 +265,16 @@ def stats_counter_update(cnt: str, val: int = 1) -> None:
       return
 
     add_counter(stats,cnt,val)
+
+    # Record only successful top-level commands in the upload batch. Start
+    # counters remain local diagnostics and are never submitted.
+    if cnt.startswith('cli.') and cnt.endswith('.done'):
+      command = cnt[len('cli.'):-len('.done')]
+      usage_payload.collect_command(usage_payload.ensure_batch(stats,'_pending'),command)
+
     write_stats(stats)
   except Exception as ex:
+    unlock_stats()
     stats_update_error(ex,f'counter {cnt}')
 
 '''
@@ -241,4 +289,57 @@ def stats_change_data(data: typing.Union[Box,dict]) -> None:
 
     write_stats(stats+data,force=True)
   except Exception as ex:
+    unlock_stats()
     stats_update_error(ex)
+
+
+'''
+Read the exact payload that would be uploaded without modifying batch state.
+'''
+def preview_upload_payload(netlab_version: str) -> typing.Optional[dict]:
+  stats = lock_and_read_stats()
+  if stats is None:
+    unlock_stats()
+    return None
+  try:
+    return usage_payload.preview_upload(stats,netlab_version)
+  finally:
+    unlock_stats()
+
+'''
+Rotate pending statistics into a retryable in-flight batch and return it.
+'''
+def prepare_upload_payload(netlab_version: str) -> typing.Optional[dict]:
+  stats = lock_and_read_stats()
+  if stats is None:
+    unlock_stats()
+    return None
+  try:
+    payload = usage_payload.prepare_upload(stats,netlab_version)
+    if payload is not None:
+      write_stats(stats,force=True)
+    else:
+      unlock_stats()
+    return payload
+  except Exception:
+    unlock_stats()
+    raise
+
+'''
+Acknowledge an accepted batch without touching data collected during upload.
+'''
+def acknowledge_upload(batch_id: str) -> bool:
+  stats = lock_and_read_stats()
+  if stats is None:
+    unlock_stats()
+    return False
+  try:
+    acknowledged = usage_payload.acknowledge_upload(stats,batch_id)
+    if acknowledged:
+      write_stats(stats,force=True)
+    else:
+      unlock_stats()
+    return acknowledged
+  except Exception:
+    unlock_stats()
+    raise
